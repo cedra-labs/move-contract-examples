@@ -4,7 +4,7 @@ version = "1.0.0"
 authors = []
 
 [addresses]
-CedraFungible = "0xd3a56203d26040eb6d9f429341afcc40f58ea5d9fc3d007e491ad5e7a09a16d2"
+CedraFungible = "_"
 
 [dev-addresses]
 

@@ -2,10 +2,10 @@ import { Account, AccountAddress, Aptos, AptosConfig, Network, Ed25519PrivateKey
 
 // Constants
 const NETWORK = Network.DEVNET;
-const MODULE_ADDRESS = "0x1163260c835b1396a3479790fc9a4d89ad742dfcdae45179c620a2705ed38a5a";
-const MODULE_NAME = "AptosCoin";
+const MODULE_ADDRESS = "_";
+const MODULE_NAME = "_";
 const MODULE_FULL_PATH = `${MODULE_ADDRESS}::${MODULE_NAME}`;
-const ADMIN_PRIVATE_KEY = "0xe443684d1810e095e2fe5286641cafb3da909342b86d2ae28ece8d4534631eb7";
+const ADMIN_PRIVATE_KEY = "_";
 
 // Token amounts
 const ONE_APT_IN_OCTAS = 100_000_000; // 1 APT = 100 million octas
