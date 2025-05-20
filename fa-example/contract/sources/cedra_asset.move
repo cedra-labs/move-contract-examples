@@ -66,13 +66,6 @@ module CedraFungible::CedraAsset {
         primary_fungible_store::deposit(to, fa);
     }
 
-    /// Check the balance of an account
-    #[view]
-    public fun balance(account: address): u64 {
-        let asset = get_metadata();
-        primary_fungible_store::balance(account, asset)
-    }
-
     /// Borrow the immutable reference of the refs of `metadata`.
     /// This validates that the signer is the metadata object's owner.
     inline fun authorized_borrow_refs(

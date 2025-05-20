@@ -1,6 +1,6 @@
-# CedraAsset - Cedra Fungible Token Demo
+# CedraAsset - Cedra Fungible Asset Demo
 
-This repository contains a Move smart contract for a fungible token called "CedraAsset" and a TypeScript client application to interact with it.
+This repository contains a Move smart contract for a fungible asset called "CedraAsset" and a TypeScript client application to interact with it.
 
 ## Prerequisites
 
@@ -33,7 +33,7 @@ aptos move compile
 3. Publish the contract:
 
 ```bash
-aptos move publish --named-addresses CedraFungible=default
+aptos move publish
 ```
 
 4. Take note of the account address where the contract is deployed, you'll need it for the client:
@@ -62,7 +62,7 @@ pnpm install
 // Update these constants with your deployed contract information
 const MODULE_ADDRESS = "_"; // Replace with your address
 const MODULE_NAME = "_";
-const ADMIN_PRIVATE_KEY = "_"; // Replace with your private key
+const ADMIN_PRIVATE_KEY = "_"; // Using private key to create account is a security risk, this is only for educational purposes. For production use, do not define your private key as this will expose to the public
 ```
 
 4. Run the client:
@@ -100,7 +100,7 @@ If you encounter issues with the client:
 
 ## Aptos Module Details
 
-The Move contract implements a fungible token with the following functions:
+The Move contract implements a fungible asset with the following functions:
 
 - `mint`: Mints new tokens to a specified account (only callable by admin)
 - `transfer`: Transfers tokens between accounts

@@ -5,6 +5,8 @@ const NETWORK = Network.DEVNET;
 const MODULE_ADDRESS = "_";
 const MODULE_NAME = "CedraAsset";
 const MODULE_FULL_PATH = `${MODULE_ADDRESS}::${MODULE_NAME}`;
+// Using private key to create account is a security risk, this is only for educational purposes.
+// For production use, do not define your private key as this will expose to the public
 const ADMIN_PRIVATE_KEY = "_";
 
 // Token amounts
@@ -26,15 +28,16 @@ const fundAccount = async (aptos: Aptos, accountAddress: AccountAddress) => {
  */
 const checkBalance = async (aptos: Aptos, name: string, address: AccountAddress) => {
   try {
-    const result = await aptos.view({
+    // Use the module's balance function directly
+    const [balanceStr] = await aptos.view<[string]>({
       payload: {
         function: `${MODULE_ADDRESS}::${MODULE_NAME}::balance`,
         typeArguments: [],
-        functionArguments: [address]
+        functionArguments: [address.toString()]
       }
     });
     
-    const amount = Number(result[0]);
+    const amount = parseInt(balanceStr, 10);
     console.log(`${name}'s CedraAsset balance is: ${amount}`);
     return amount;
   } catch (error) {
@@ -54,7 +57,8 @@ const example = async () => {
   const config = new AptosConfig({ network: NETWORK });
   const aptos = new Aptos(config);
 
-  // Using private key to create account is a security risk, this is only for learning purposes
+  // Using private key to create account is a security risk, this is only for educational purposes.
+  // For production use, do not define your private key as this will expose to the public
   const privateKey = new Ed25519PrivateKey(ADMIN_PRIVATE_KEY);
   const admin = Account.fromPrivateKey({ privateKey });
   const user = Account.generate();
