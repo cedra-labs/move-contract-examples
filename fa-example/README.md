@@ -1,6 +1,6 @@
-# CedraCoin - Cedra Fungible Token Demo
+# CedraAsset - Cedra Fungible Token Demo
 
-This repository contains a Move smart contract for a fungible token called "CedraCoin" and a TypeScript client application to interact with it.
+This repository contains a Move smart contract for a fungible token called "CedraAsset" and a TypeScript client application to interact with it.
 
 ## Prerequisites
 
@@ -10,7 +10,7 @@ This repository contains a Move smart contract for a fungible token called "Cedr
 
 ## Project Structure
 
-- `/contract` - Move contract for CedraCoin
+- `/contract` - Move contract for CedraAsset
 - `/client` - TypeScript client application
 
 ## Deploying the Contract
@@ -73,7 +73,7 @@ pnpm run start
 
 ## What the Demo Does
 
-This demo performs a complete lifecycle of CedraCoin token operations:
+This demo performs a complete lifecycle of CedraAsset token operations:
 
 1. Creates two accounts: 
    - Admin (the deployer account)
@@ -83,7 +83,7 @@ This demo performs a complete lifecycle of CedraCoin token operations:
 
 3. Checks initial token balances for both accounts
 
-4. Mints CedraCoin tokens from Admin to User (500 tokens)
+4. Mints CedraAsset tokens from Admin to User (500 tokens)
 
 5. Transfers tokens from User back to Admin (250 tokens)
 

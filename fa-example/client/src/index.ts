@@ -35,7 +35,7 @@ const checkBalance = async (aptos: Aptos, name: string, address: AccountAddress)
     });
     
     const amount = Number(result[0]);
-    console.log(`${name}'s CedraCoin balance is: ${amount}`);
+    console.log(`${name}'s CedraAsset balance is: ${amount}`);
     return amount;
   } catch (error) {
     console.error(`Error getting balance for ${name}:`, error);
@@ -47,14 +47,14 @@ const checkBalance = async (aptos: Aptos, name: string, address: AccountAddress)
  * Main demo flow
  */
 const example = async () => {
-  console.log("Starting CedraCoin demo");
+  console.log("Starting CedraAsset demo");
   console.log(`Using module: ${MODULE_FULL_PATH}`);
 
   // Setup
   const config = new AptosConfig({ network: NETWORK });
   const aptos = new Aptos(config);
 
-  // Create accounts
+  // Using private key to create account is a security risk, this is only for learning purposes
   const privateKey = new Ed25519PrivateKey(ADMIN_PRIVATE_KEY);
   const admin = Account.fromPrivateKey({ privateKey });
   const user = Account.generate();
@@ -64,7 +64,7 @@ const example = async () => {
   
   // Fund & check initial state
   await fundAccount(aptos, user.accountAddress);
-  console.log("Checking initial CedraCoin balances...");
+  console.log("Checking initial CedraAsset balances...");
   await checkBalance(aptos, "Admin", admin.accountAddress);
   await checkBalance(aptos, "New User", user.accountAddress);
 
