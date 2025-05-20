@@ -3,7 +3,7 @@ import { Account, AccountAddress, Aptos, AptosConfig, Network, Ed25519PrivateKey
 // Constants
 const NETWORK = Network.DEVNET;
 const MODULE_ADDRESS = "_";
-const MODULE_NAME = "_";
+const MODULE_NAME = "CedraAsset";
 const MODULE_FULL_PATH = `${MODULE_ADDRESS}::${MODULE_NAME}`;
 const ADMIN_PRIVATE_KEY = "_";
 

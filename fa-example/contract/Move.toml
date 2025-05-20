@@ -1,5 +1,5 @@
 [package]
-name = "cedra_fa"
+name = "cedra_fungible_asset"
 version = "1.0.0"
 authors = []
 
