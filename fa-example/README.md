@@ -104,7 +104,6 @@ The Move contract implements a fungible asset with the following functions:
 
 - `mint`: Mints new tokens to a specified account (only callable by admin)
 - `transfer`: Transfers tokens between accounts
-- `balance`: View function to check an account's token balance
 
 ## License
 

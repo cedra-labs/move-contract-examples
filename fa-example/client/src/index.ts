@@ -28,12 +28,23 @@ const fundAccount = async (aptos: Aptos, accountAddress: AccountAddress) => {
  */
 const checkBalance = async (aptos: Aptos, name: string, address: AccountAddress) => {
   try {
-    // Use the module's balance function directly
+    // First get the metadata object
+    const metadataResult = await aptos.view({
+      payload: {
+        function: `${MODULE_ADDRESS}::${MODULE_NAME}::get_metadata`,
+        typeArguments: [],
+        functionArguments: []
+      }
+    });
+    
+    const metadataAddress = (metadataResult[0] as { inner: string }).inner;
+    
+    // Actually use primary_fungible_store::balance
     const [balanceStr] = await aptos.view<[string]>({
       payload: {
-        function: `${MODULE_ADDRESS}::${MODULE_NAME}::balance`,
-        typeArguments: [],
-        functionArguments: [address.toString()]
+        function: "0x1::primary_fungible_store::balance",
+        typeArguments: ["0x1::fungible_asset::Metadata"],
+        functionArguments: [address.toString(), metadataAddress]
       }
     });
     
@@ -42,7 +53,6 @@ const checkBalance = async (aptos: Aptos, name: string, address: AccountAddress)
     return amount;
   } catch (error) {
     console.error(`Error getting balance for ${name}:`, error);
-    return 0;
   }
 };
 
