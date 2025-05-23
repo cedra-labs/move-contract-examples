@@ -1,0 +1,5 @@
+.aptos/
+build/
+client/node_modules/
+client/package-lock.json
+pnpm-lock.yaml
