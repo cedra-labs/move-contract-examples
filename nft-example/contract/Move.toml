@@ -1,0 +1,15 @@
+[package]
+name = "cedra_nft_v2"
+version = "2.0.0"
+authors = []
+
+[addresses]
+CedraNFTV2 = "_"
+
+[dev-addresses]
+
+[dependencies]
+AptosFramework = { git = "https://github.com/aptos-labs/aptos-framework.git", subdir = "aptos-framework", rev = "mainnet" }
+AptosTokenObjects = { git = "https://github.com/aptos-labs/aptos-framework.git", subdir = "aptos-token-objects", rev = "mainnet" }
+
+[dev-dependencies] 
