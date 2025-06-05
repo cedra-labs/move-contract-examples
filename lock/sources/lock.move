@@ -9,7 +9,7 @@ module lock_deployer::lock {
 
     use std::option::{Self, Option};
     use std::signer;
-    use aptos_std::smart_table::{Self, SmartTable};
+    use aptos_std::big_ordered_map::{Self, BigOrderedMap};
     use aptos_framework::dispatchable_fungible_asset;
     use aptos_framework::fungible_asset::{Self, Metadata, FungibleStore};
     use aptos_framework::object::{Self, Object, ExtendRef, DeleteRef};
@@ -29,7 +29,7 @@ module lock_deployer::lock {
     ///
     /// These are stored on objects, which map to the appropriate escrows
     enum Lockup has key {
-        /// SmartTable implementation, which can be replaced with a newer version later
+        /// BigOrderedMap implementation, which can be replaced with a newer version later
         ST {
             // Creator of the lockup
             creator: address,
@@ -38,7 +38,7 @@ module lock_deployer::lock {
             /// Used to cleanup the Lockup object
             delete_ref: DeleteRef,
             /// Normally with coin, we could escrow in the table, but we have to escrow in owned objects for the purposes of FA
-            escrows: SmartTable<EscrowKey, address>
+            escrows: BigOrderedMap<EscrowKey, address>
         }
     }
 
@@ -111,7 +111,7 @@ module lock_deployer::lock {
         let obj_signer = object::generate_signer(&constructor_ref);
         move_to(&obj_signer, Lockup::ST {
             creator: caller_address,
-            escrows: smart_table::new(),
+            escrows: big_ordered_map::new_with_config(0, 0, false),
             extend_ref,
             delete_ref
         });
@@ -139,10 +139,14 @@ module lock_deployer::lock {
             user: caller_address
         };
 
-        let escrow_address = lockup.escrows.borrow_mut_with_default(lockup_key, @0x0);
+        let escrow_address = if (lockup.escrows.contains(&lockup_key)) {
+            *lockup.escrows.borrow(&lockup_key)
+        } else {
+            @0x0
+        };
 
         // If we haven't found it, create a new escrow object
-        if (escrow_address == &@0x0) {
+        if (escrow_address == @0x0) {
             let constructor_ref = object::create_object(lockup_address);
             let object_signer = object::generate_signer(&constructor_ref);
             let object_delete_ref = object::generate_delete_ref(&constructor_ref);
@@ -155,11 +159,13 @@ module lock_deployer::lock {
                 original_owner: caller_address,
                 delete_ref: object_delete_ref
             });
-            // Save it to the table
-            *escrow_address = object::address_from_constructor_ref(&constructor_ref);
+            // Save it to the map
+            let new_address = object::address_from_constructor_ref(&constructor_ref);
+            lockup.escrows.add(lockup_key, new_address);
+            escrow_address = object::address_from_constructor_ref(&constructor_ref);
         } else {
             // Otherwise, we'll reset the unlock time to the new time
-            let escrow = &Escrow[*escrow_address];
+            let escrow = &Escrow[escrow_address];
             match (escrow) {
                 Simple { .. } => {
                     // Do nothing
@@ -171,7 +177,7 @@ module lock_deployer::lock {
         };
 
         // Now transfer funds into the escrow
-        escrow_funds(caller, fa_metadata, *escrow_address, caller_address, amount);
+        escrow_funds(caller, fa_metadata, escrow_address, caller_address, amount);
     }
 
     /// Escrows funds with a user defined lockup time
@@ -192,12 +198,16 @@ module lock_deployer::lock {
         };
 
 
-        let escrow_address = lockup.escrows.borrow_mut_with_default(lockup_key, @0x0);
+        let escrow_address = if (lockup.escrows.contains(&lockup_key)) {
+            *lockup.escrows.borrow(&lockup_key)
+        } else {
+            @0x0
+        };
         
         let new_unlock_secs = timestamp::now_seconds() + lockup_time_secs;
 
         // If we haven't found it, create a new escrow object
-        if (escrow_address == &@0x0) {
+        if (escrow_address == @0x0) {
             // We specifically make this object on @0x0, so that the creator doesn't have the ability to pull the funds
             // out without the contract
             let constructor_ref = object::create_object(lockup_address);
@@ -213,11 +223,13 @@ module lock_deployer::lock {
                 unlock_secs: new_unlock_secs,
                 delete_ref: object_delete_ref
             });
-            // Save it to the table
-            *escrow_address = object::address_from_constructor_ref(&constructor_ref);
+            // Save it to the map
+            let new_address = object::address_from_constructor_ref(&constructor_ref);
+            lockup.escrows.add(lockup_key, new_address);
+            escrow_address = new_address;
         } else {
             // Otherwise, we'll reset the unlock time to the new time
-            let escrow = &mut Escrow[*escrow_address];
+            let escrow = &mut Escrow[escrow_address];
             match (escrow) {
                 Simple { .. } => {
                     abort E_NOT_TIME_LOCKUP;
@@ -234,7 +246,7 @@ module lock_deployer::lock {
         };
 
         // Now transfer funds into the escrow
-        escrow_funds(caller, fa_metadata, *escrow_address, caller_address, amount);
+        escrow_funds(caller, fa_metadata, escrow_address, caller_address, amount);
     }
 
     /// Claims an escrow by the owner of the escrow
@@ -350,9 +362,9 @@ module lock_deployer::lock {
             user,
         };
 
-        assert!(self.escrows.contains(lockup_key), E_NO_USER_LOCKUP);
+        assert!(self.escrows.contains(&lockup_key), E_NO_USER_LOCKUP);
 
-        (lockup_key, *self.escrows.borrow(lockup_key))
+        (lockup_key, *self.escrows.borrow(&lockup_key))
     }
 
     /// Escrows an amount of funds to the escrow object
@@ -405,7 +417,7 @@ module lock_deployer::lock {
 
     /// Deletes an escrow object
     inline fun delete_escrow(self: &mut Lockup, lockup_key: EscrowKey) {
-        let escrow_addr = self.escrows.remove(lockup_key);
+        let escrow_addr = self.escrows.remove(&lockup_key);
 
         // The following lines will return the storage deposit
         let delete_ref = match (move_from<Escrow>(escrow_addr)) {
@@ -438,8 +450,8 @@ module lock_deployer::lock {
             fa_metadata,
             user
         };
-        if (lockup.escrows.contains(escrow_key)) {
-            let escrow_address = lockup.escrows.borrow(escrow_key);
+        if (lockup.escrows.contains(&escrow_key)) {
+            let escrow_address = lockup.escrows.borrow(&escrow_key);
             let escrow_obj = object::address_to_object<Escrow>(*escrow_address);
             option::some(fungible_asset::balance(escrow_obj))
         } else {
@@ -459,8 +471,8 @@ module lock_deployer::lock {
             fa_metadata,
             user
         };
-        if (lockup.escrows.contains(escrow_key)) {
-            let escrow_address = lockup.escrows.borrow(escrow_key);
+        if (lockup.escrows.contains(&escrow_key)) {
+            let escrow_address = lockup.escrows.borrow(&escrow_key);
             let remaining_secs = match (&Escrow[*escrow_address]) {
                 Simple { .. } => { 0 }
                 TimeUnlock { unlock_secs, .. } => {
