@@ -1,3 +1,4 @@
+#[test_only]
 module lock_deployer::lock_test {
     use aptos_framework::fungible_asset::{Self, Metadata};
     use aptos_framework::object::{Self, Object};
