@@ -1,7 +1,7 @@
 module FeeSplitter::FeeSplitter {
-    use aptos_framework::fungible_asset::{Self, Metadata, FungibleAsset};
+    use aptos_framework::fungible_asset::Metadata;
     use aptos_framework::primary_fungible_store;
-    use aptos_framework::object::{Self, Object};
+    use aptos_framework::object::Object;
     use std::vector;
     use std::error;
     use std::signer;
@@ -27,22 +27,29 @@ module FeeSplitter::FeeSplitter {
     /// Create a new fee splitter with specified recipients and their shares
     public entry fun create_splitter(
         creator: &signer,
-        recipients: vector<Recipient>,
+        addresses: vector<address>,
+        shares: vector<u64>,
     ) {
         let creator_addr = signer::address_of(creator);
         
         // Validate inputs
-        assert!(!vector::is_empty(&recipients), error::invalid_argument(EINVALID_RECIPIENTS));
+        assert!(!vector::is_empty(&addresses), error::invalid_argument(EINVALID_RECIPIENTS));
+        assert!(!vector::is_empty(&shares), error::invalid_argument(EINVALID_RECIPIENTS));
+        assert!(vector::length(&addresses) == vector::length(&shares), error::invalid_argument(EINVALID_RECIPIENTS));
         
         let total_shares = 0u64;
         let i = 0;
-        let len = vector::length(&recipients);
+        let len = vector::length(&shares);
+        let recipients = vector::empty<Recipient>();
         
-        // Validate shares and calculate total
+        // Validate shares and calculate total, build recipients vector
         while (i < len) {
-            let recipient = vector::borrow(&recipients, i);
-            assert!(recipient.share > 0, error::invalid_argument(EINVALID_SHARE));
-            total_shares = total_shares + recipient.share;
+            let share = *vector::borrow(&shares, i);
+            let addr = *vector::borrow(&addresses, i);
+            assert!(share > 0, error::invalid_argument(EINVALID_SHARE));
+            
+            vector::push_back(&mut recipients, Recipient { addr, share });
+            total_shares = total_shares + share;
             i = i + 1;
         };
         
@@ -107,11 +114,5 @@ module FeeSplitter::FeeSplitter {
         exists<FeeSplitter>(splitter_address)
     }
 
-    /// Get APT metadata object for easy usage
-    #[view]
-    public fun get_apt_metadata(): Object<Metadata> {
-        // APT is at address 0xa
-        let apt_metadata_address = @0xa;
-        object::address_to_object<Metadata>(apt_metadata_address)
-    }
+
 } 

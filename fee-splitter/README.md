@@ -1,308 +1,149 @@
-# Fee Splitter Contract
+# Fee Splitter
 
-A secure and efficient fee splitter smart contract for Aptos blockchain that allows automatic distribution of fungible assets (including APT) to multiple recipients based on predefined shares.
+A smart contract for automatically distributing payments among multiple recipients based on predefined shares.
 
-## 🌟 Features
+## Overview
 
-### Smart Contract Features
-- **Fungible Asset Support**: Uses modern fungible asset framework (replaces deprecated coin framework)
-- **Secure Distribution**: Safe asset splitting with proper validation and error handling
-- **Flexible Shares**: Support for any ratio distribution (not limited to percentages)  
-- **Simple Logic**: Easy to understand distribution without complex remainder handling
-- **Access Control**: Only designated accounts can create and manage splitters
-- **View Functions**: Easy querying of splitter information and existence
+The Fee Splitter contract allows you to:
+- Create configurable payment distribution schemes
+- Automatically split payments proportionally
+- Distribute any fungible asset (CEDRA, USDC, etc.)
+- Ensure secure, direct transfers with no custody risk
 
-### Client Features
-- **TypeScript SDK**: Full-featured client library with type safety
-- **Fungible Asset Integration**: Automatic APT metadata handling for modern asset operations
-- **Account Management**: Automatic account funding and balance checking
-- **Transaction Handling**: Robust transaction building and execution
-- **Error Handling**: Comprehensive error handling with clear messages
-- **Demo Mode**: Built-in demonstration of all functionality
+## Quick Start
 
-## 🏗️ Architecture
+### Deploy Contract
 
-### Move Contract Structure
-```
-FeeSplitter::FeeSplitter
-├── Structs
-│   ├── Recipient { addr, share }
-│   └── FeeSplitter { recipients, total_shares, owner }
-└── Functions
-    ├── create_splitter(creator, recipients)
-    ├── distribute_fees(sender, splitter_owner, asset_metadata, amount)
-    ├── get_splitter_info(address) [view]
-    ├── splitter_exists(address) [view]
-    └── get_apt_metadata() [view]
-```
-
-## 🚀 Quick Start
-
-### Prerequisites
-- [Aptos CLI](https://aptos.dev/tools/aptos-cli/install-cli/) installed
-- Node.js 18+ installed
-- Access to Aptos devnet/testnet
-
-### TL;DR - Quick Deploy & Run
 ```bash
-# 1. Deploy contract
-cd fee-splitter/contract
-aptos init --network devnet
+cd contract
+aptos init
 aptos account fund-with-faucet
-aptos account list  # Copy your address
-aptos move compile --named-addresses FeeSplitter=<your-address>
-aptos move publish --named-addresses FeeSplitter=<your-address>
+aptos move compile --named-addresses FeeSplitter=default
+aptos move publish --named-addresses FeeSplitter=default
+```
 
-# 2. Run client
-cd ../client
+### Run Client Example
+
+```bash
+cd client
 npm install
-# Update MODULE_ADDRESS in src/index.ts with your address
 npm start
 ```
 
-### Contract Deployment
+## How It Works
 
-1. **Navigate to contract directory:**
-```bash
-cd fee-splitter/contract
-```
+1. **Create a Splitter**: Define recipients and their shares
+2. **Distribute Payments**: Send funds that get automatically split
+3. **Direct Transfers**: Funds go directly to recipients (no intermediate storage)
 
-2. **Initialize Aptos account (if not done):**
-```bash
-aptos init --network devnet
-```
-
-3. **Fund your account on devnet:**
-```bash
-aptos account fund-with-faucet
-```
-
-4. **Get your account address:**
-```bash
-aptos account list
-```
-
-5. **Compile the contract:**
-```bash
-aptos move compile --named-addresses FeeSplitter=<your-account-address>
-```
-
-6. **Deploy to devnet:**
-```bash
-aptos move publish --named-addresses FeeSplitter=<your-account-address>
-```
-
-**Example with a real address:**
-```bash
-# Replace 0xabcd... with your actual account address
-aptos move compile --named-addresses FeeSplitter=0xabcd1234567890abcd1234567890abcd12345678
-aptos move publish --named-addresses FeeSplitter=0xabcd1234567890abcd1234567890abcd12345678
-```
-
-### Client Setup
-
-1. **Navigate to client directory:**
-```bash
-cd fee-splitter/client
-```
-
-2. **Install dependencies:**
-```bash
-npm install
-```
-
-3. **Update the module address in `src/index.ts`:**
-```typescript
-const MODULE_ADDRESS = "0x..."; // Your deployed contract address
-```
-
-4. **Run the demo:**
-```bash
-npm start
-```
-
-## 📖 Usage Examples
-
-### Creating a Fee Splitter
+### Example
 
 ```typescript
-import { FeeSplitterClient } from './src/index.js';
+// Create splitter: 50% Alice, 30% Bob, 20% Charlie
+const recipients = [
+  { address: alice.address, share: 50 },
+  { address: bob.address, share: 30 },
+  { address: charlie.address, share: 20 }
+];
+
+await client.createSplitter(creator, recipients);
+
+// Distribute 1 CEDRA according to shares
+await client.distributeFees(payer, creator.address, 100_000_000);
+// Result: Alice gets 0.5 CEDRA, Bob gets 0.3 CEDRA, Charlie gets 0.2 CEDRA
+```
+
+## Contract API
+
+### Functions
+
+- `create_splitter(addresses: vector<address>, shares: vector<u64>)`
+- `distribute_fees(splitter_owner: address, asset_metadata: Object<Metadata>, amount: u64)`
+- `get_splitter_info(splitter_address: address): (vector<Recipient>, u64)` (view)
+- `splitter_exists(splitter_address: address): bool` (view)
+
+### Distribution Formula
+
+```
+recipient_amount = (total_amount × recipient_share) ÷ total_shares
+```
+
+## Client Library
+
+### Installation
+
+```bash
+npm install @aptos-labs/ts-sdk
+```
+
+### Usage
+
+```typescript
+import { FeeSplitterClient } from './src/index';
 
 const client = new FeeSplitterClient();
 
-// Define recipients and their shares
-const recipients = [
-  { address: recipient1.accountAddress, share: 50 }, // 50 shares
-  { address: recipient2.accountAddress, share: 30 }, // 30 shares  
-  { address: recipient3.accountAddress, share: 20 }  // 20 shares
-];
-
-// Create the splitter
+// Create splitter
 await client.createSplitter(creator, recipients);
+
+// Distribute fees  
+await client.distributeFees(sender, splitterOwner, amount);
+
+// Get info
+const info = await client.getSplitterInfo(address);
 ```
 
-### Distributing Fees
+## Project Structure
 
-```typescript
-// Distribute 0.01 APT proportionally using fungible assets
-const amount = 1_000_000; // in octas
-await client.distributeFees(payer, creatorAddress, amount);
-// The client automatically handles APT metadata for you
+```
+fee-splitter/
+├── contract/
+│   ├── sources/fee_splitter.move
+│   └── Move.toml
+├── client/
+│   ├── src/index.ts
+│   ├── package.json
+│   └── tsconfig.json
+└── README.md
 ```
 
-### Checking Splitter Info
+## Development
 
-```typescript
-const info = await client.getSplitterInfo(splitterAddress);
-console.log(`Total shares: ${info.total_shares}`);
-console.log(`Recipients: ${info.recipients.length}`);
-```
+### Prerequisites
+- Node.js 18+
+- Aptos CLI
 
-## 🔒 Security Features
+### Build and Test
 
-### Input Validation
-- Non-empty recipient lists
-- Positive share amounts
-- Valid addresses
-- Sufficient balances
-
-### Safe Arithmetic
-- Overflow protection
-- Simple division-based distribution
-
-### Access Control
-- Owner-based permissions
-- Resource existence checks
-- Proper error codes
-
-## 🧪 Testing
-
-### Run the Demo
 ```bash
-cd fee-splitter/client
+# Deploy contract
+cd contract
+aptos init
+aptos account fund-with-faucet
+aptos move compile --named-addresses FeeSplitter=default
+aptos move publish --named-addresses FeeSplitter=default
+
+# Test client
+cd client
+npm install
 npm start
 ```
 
-### Interactive Mode
-```bash
-npm start -- --interactive
-```
+## Security Features
 
-### Expected Demo Output
-```
-🚀 Starting Fee Splitter Demo
-==================================================
+- ✅ **No custody risk** - direct transfers only
+- ✅ **Input validation** - prevents invalid configurations  
+- ✅ **Balance verification** - ensures sufficient funds
+- ✅ **Atomic execution** - all-or-nothing distribution
 
-📋 Generated Accounts:
-Creator:    0x...
-Recipient1: 0x...
-Recipient2: 0x...
-Recipient3: 0x...
-Payer:      0x...
+## Use Cases
 
-💰 Funding accounts...
-✅ Funding completed...
+- Revenue sharing for DAOs
+- Royalty distribution for NFTs  
+- Commission splitting for marketplaces
+- Profit sharing for partnerships
+- Fee distribution for protocols
 
-🏗️ Creating fee splitter with 3 recipients...
-✅ Fee splitter created successfully!
+## License
 
-📊 Splitter Info:
-   Owner: 0x...
-   Total Shares: 100
-   Recipients:
-     1. 0x... - 50 shares (50.00%)
-     2. 0x... - 30 shares (30.00%)
-     3. 0x... - 20 shares (20.00%)
-
-💸 Distributing 0.01 APT...
-✅ Fees distributed successfully!
-
-🎉 Demo completed successfully!
-```
-
-## 📚 API Reference
-
-### FeeSplitterClient Class
-
-#### Constructor
-```typescript
-constructor(network?: Network, moduleAddress?: string)
-```
-
-#### Methods
-
-**`fundAccount(accountAddress, amount?)`**
-- Fund an account from faucet
-- Returns: `Promise<void>`
-
-**`checkBalance(name, address)`**
-- Check APT balance for an account
-- Returns: `Promise<number>`
-
-**`createSplitter(creator, recipients)`**
-- Create a new fee splitter
-- Returns: `Promise<string>` (transaction hash)
-
-**`distributeFees(sender, splitterOwnerAddress, amount)`**
-- Distribute fees to recipients
-- Returns: `Promise<string>` (transaction hash)
-
-**`getSplitterInfo(splitterAddress)`**
-- Get splitter configuration and info
-- Returns: `Promise<SplitterInfo | null>`
-
-**`splitterExists(splitterAddress)`**
-- Check if splitter exists at address
-- Returns: `Promise<boolean>`
-
-## 🔧 Configuration
-
-### Environment Variables
-Create a `.env` file for configuration:
-```env
-NETWORK=devnet
-MODULE_ADDRESS=0x...
-PRIVATE_KEY=0x... # For testing only
-```
-
-### Network Configuration
-Supported networks:
-- `devnet` (default)
-- `testnet`
-- `mainnet`
-
-## 🚨 Important Notes
-
-### Security Warnings
-- Never expose private keys in production
-- Always validate recipient addresses
-- Test thoroughly on devnet before mainnet deployment
-- Consider gas costs for large recipient lists
-
-### Limitations
-- Maximum recipients limited by transaction size
-- Shares must be positive integers
-- Requires sufficient balance for distribution
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests
-5. Submit a pull request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🆘 Support
-
-For questions and support:
-- Create an issue on GitHub
-- Check the [Aptos documentation](https://aptos.dev/)
-- Join the [Aptos Discord](https://discord.gg/aptoslabs)
-
----
-
-**Built with ❤️ for the Aptos ecosystem** 
+MIT License 
