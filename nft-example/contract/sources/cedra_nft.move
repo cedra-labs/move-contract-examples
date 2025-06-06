@@ -59,6 +59,7 @@ module CedraNFTV2::CedraCollectionV2 {
     }
 
     /// Transfer an NFT from one account to another.
+    /// @notice You can use object::transfer directy, that function for demo purpose only.
     public entry fun transfer_nft(
         from: &signer,
         object: Object<token::Token>,
@@ -68,16 +69,17 @@ module CedraNFTV2::CedraCollectionV2 {
     }
 
     /// Get collection owner/creator
+    /// @notice You can use object::owner directly, that function for demo purpose only.
     #[view]
     public fun get_collection_owner(): address {
-        @CedraNFTV2
+        object::owner();
     }
 
     /// Check if collection exists
     #[view]
     public fun collection_exists(): bool {
         let collection_name = string::utf8(COLLECTION_NAME);
-        let creator = @CedraNFTV2;
+        let creator = object::owner();
         let collection_address = collection::create_collection_address(&creator, &collection_name);
         object::object_exists<collection::Collection>(collection_address)
     }
@@ -87,9 +89,9 @@ module CedraNFTV2::CedraCollectionV2 {
     public fun get_collection_data(): (String, String, String) {
         if (collection_exists()) {
             (
-                string::utf8(COLLECTION_NAME),
-                string::utf8(COLLECTION_DESCRIPTION), 
-                string::utf8(COLLECTION_URI)
+                string::utf8(collection::name()),
+                string::utf8(collection::description()), 
+                string::utf8(collection::uri())
             )
         } else {
             (string::utf8(b""), string::utf8(b""), string::utf8(b""))
