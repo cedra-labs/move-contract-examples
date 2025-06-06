@@ -29,12 +29,12 @@ const fundAccount = async (aptos: Aptos, accountAddress: AccountAddress, name: s
 /**
  * Check if collection exists
  */
-const checkCollectionExists = async (aptos: Aptos) => {
+const checkCollectionExists = async (aptos: Aptos, creatorAddress: string) => {
   const result = await aptos.view({
     payload: {
       function: `${MODULE_ADDRESS}::${MODULE_NAME}::collection_exists`,
       typeArguments: [],
-      functionArguments: []
+      functionArguments: [creatorAddress]
     }
   });
   
@@ -132,7 +132,7 @@ const demo = async () => {
   await fundAccount(aptos, user2.accountAddress, "User2");
 
   // Verify collection exists
-  const collectionExists = await checkCollectionExists(aptos);
+  const collectionExists = await checkCollectionExists(aptos, deployer.accountAddress.toString());
   console.log(`Collection exists: ${collectionExists}`);
 
   // Mint 3 NFTs with unique names
