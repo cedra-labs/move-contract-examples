@@ -1,0 +1,22 @@
+{
+  "name": "fee-splitter-client",
+  "version": "1.0.0",
+  "description": "Client for interacting with the Fee Splitter contract",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "build": "tsc",
+    "dev": "tsx --watch src/index.ts"
+  },
+  "dependencies": {
+    "@aptos-labs/ts-sdk": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.18",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
+  }
+} 
