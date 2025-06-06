@@ -71,27 +71,32 @@ module CedraNFTV2::CedraCollectionV2 {
     /// Get collection owner/creator
     /// @notice You can use object::owner directly, that function for demo purpose only.
     #[view]
-    public fun get_collection_owner(): address {
-        object::owner();
+    public fun get_collection_owner(creator_address: address): address {
+        let collection_name = string::utf8(COLLECTION_NAME);
+        let collection_address = collection::create_collection_address(&creator_address, &collection_name);
+        let collection_object = object::address_to_object<collection::Collection>(collection_address);
+        object::owner(collection_object)
     }
 
     /// Check if collection exists
     #[view]
-    public fun collection_exists(): bool {
+    public fun collection_exists(creator_address: address): bool {
         let collection_name = string::utf8(COLLECTION_NAME);
-        let creator = object::owner();
-        let collection_address = collection::create_collection_address(&creator, &collection_name);
+        let collection_address = collection::create_collection_address(&creator_address, &collection_name);
         object::object_exists<collection::Collection>(collection_address)
     }
 
     /// Get collection data
     #[view]
-    public fun get_collection_data(): (String, String, String) {
-        if (collection_exists()) {
+    public fun get_collection_data(creator_address: address): (String, String, String) {
+        if (collection_exists(creator_address)) {
+            let collection_name = string::utf8(COLLECTION_NAME);
+            let collection_address = collection::create_collection_address(&creator_address, &collection_name);
+            let collection_object = object::address_to_object<collection::Collection>(collection_address);
             (
-                string::utf8(collection::name()),
-                string::utf8(collection::description()), 
-                string::utf8(collection::uri())
+                collection::name(collection_object),
+                collection::description(collection_object), 
+                collection::uri(collection_object)
             )
         } else {
             (string::utf8(b""), string::utf8(b""), string::utf8(b""))
