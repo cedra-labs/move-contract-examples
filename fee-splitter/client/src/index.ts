@@ -225,6 +225,25 @@ class FeeSplitterClient {
       return false;
     }
   }
+
+  /**
+   * Check if a given address is a recipient in the splitter
+   */
+  async isRecipient(splitterAddress: AccountAddress, recipientAddress: AccountAddress): Promise<boolean> {
+    try {
+      const result = await this.aptos.view({
+        payload: {
+          function: `${this.moduleAddress}::${this.moduleName}::is_recipient`,
+          functionArguments: [splitterAddress.toString(), recipientAddress.toString()]
+        }
+      });
+      
+      return result[0] as boolean;
+    } catch (error) {
+      console.error("❌ Error checking if address is recipient:", error);
+      return false;
+    }
+  }
 }
 
 /**
@@ -242,6 +261,7 @@ const handleExample = async () => {
     const recipient2 = Account.generate();
     const recipient3 = Account.generate();
     const payer = Account.generate();
+    const nonRecipient = Account.generate();
 
     // Fund accounts
     await client.fundAccount(creator.accountAddress);
@@ -249,6 +269,7 @@ const handleExample = async () => {
     await client.fundAccount(recipient2.accountAddress, ONE_CEDRA / 10);
     await client.fundAccount(recipient3.accountAddress, ONE_CEDRA / 10);
     await client.fundAccount(payer.accountAddress);
+    await client.fundAccount(nonRecipient.accountAddress);
 
     // Create fee splitter
     const recipients = [
@@ -259,6 +280,12 @@ const handleExample = async () => {
 
     await client.createSplitter(creator, recipients);
     await client.getSplitterInfo(creator.accountAddress);
+
+    const isRecip = await client.isRecipient(creator.accountAddress, recipient1.accountAddress);
+    console.log(`Is Recipient 1 a recipient? ${isRecip}`);
+    
+    const isNonRecip = await client.isRecipient(creator.accountAddress, nonRecipient.accountAddress);
+    console.log(`Is the non-recipient address a recipient? ${isNonRecip}`);
 
     // Distribute fees
     await client.distributeFees(payer, creator.accountAddress, EXAMPLE_AMOUNT);

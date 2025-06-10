@@ -111,7 +111,7 @@ fee-splitter/
 
 ### Prerequisites
 - Node.js 18+
-- Aptos CLI
+- Cedra CLI
 
 ### Build and Test
 

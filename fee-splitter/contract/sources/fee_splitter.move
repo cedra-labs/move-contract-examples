@@ -2,6 +2,7 @@ module FeeSplitter::FeeSplitter {
     use aptos_framework::fungible_asset::Metadata;
     use aptos_framework::primary_fungible_store;
     use aptos_framework::object::Object;
+    use aptos_std::math64;
     use std::vector;
     use std::error;
     use std::signer;
@@ -12,6 +13,10 @@ module FeeSplitter::FeeSplitter {
     const EINVALID_AMOUNT: u64 = 3;
     const EINSUFFICIENT_BALANCE: u64 = 4;
     const ESPLITTER_NOT_FOUND: u64 = 5;
+    const EINVALID_TOTAL_SHARES: u64 = 6;
+    
+    /// Maximum allowed total shares, could be any number
+    const MAX_TOTAL_SHARES: u64 = 10000;
 
     struct Recipient has copy, drop, store {
         addr: address,
@@ -37,21 +42,21 @@ module FeeSplitter::FeeSplitter {
         assert!(!vector::is_empty(&shares), error::invalid_argument(EINVALID_RECIPIENTS));
         assert!(vector::length(&addresses) == vector::length(&shares), error::invalid_argument(EINVALID_RECIPIENTS));
         
-        let total_shares = 0u64;
-        let i = 0;
-        let len = vector::length(&shares);
+        let total_shares = 0;
         let recipients = vector::empty<Recipient>();
         
         // Validate shares and calculate total, build recipients vector
-        while (i < len) {
+        for (i in 0..vector::length(&addresses)) {
             let share = *vector::borrow(&shares, i);
             let addr = *vector::borrow(&addresses, i);
             assert!(share > 0, error::invalid_argument(EINVALID_SHARE));
             
             vector::push_back(&mut recipients, Recipient { addr, share });
             total_shares = total_shares + share;
-            i = i + 1;
         };
+        
+        // Validate total shares doesn't exceed maximum
+        assert!(total_shares <= MAX_TOTAL_SHARES, error::invalid_argument(EINVALID_TOTAL_SHARES));
         
         // Create the splitter resource
         let splitter = FeeSplitter {
@@ -77,26 +82,20 @@ module FeeSplitter::FeeSplitter {
         
         // Check sender has enough balance
         let sender_addr = signer::address_of(sender);
-        let sender_balance = primary_fungible_store::balance(sender_addr, asset_metadata);
-        assert!(sender_balance >= amount, error::invalid_state(EINSUFFICIENT_BALANCE));
         
         let splitter = borrow_global<FeeSplitter>(splitter_owner);
         let total_shares = splitter.total_shares;
         let recipients = &splitter.recipients;
-        let len = vector::length(recipients);
         
         // Distribute to each recipient based on their share
-        let i = 0;
-        while (i < len) {
+        for (i in 0..vector::length(recipients)) {
             let recipient = vector::borrow(recipients, i);
-            let share_amount = (amount * recipient.share) / total_shares;
+            let share_amount = math64::mul_div(amount, recipient.share, total_shares);
             
             // Only transfer if amount is greater than 0
             if (share_amount > 0) {
                 primary_fungible_store::transfer(sender, asset_metadata, recipient.addr, share_amount);
             };
-            
-            i = i + 1;
         };
     }
 
@@ -112,6 +111,26 @@ module FeeSplitter::FeeSplitter {
     #[view]
     public fun splitter_exists(splitter_address: address): bool {
         exists<FeeSplitter>(splitter_address)
+    }
+
+    /// Check if a given address is a recipient in the splitter
+    #[view]
+    public fun is_recipient(splitter_address: address, recipient_address: address): bool acquires FeeSplitter {
+        if (!exists<FeeSplitter>(splitter_address)) {
+            return false
+        };
+        
+        let splitter = borrow_global<FeeSplitter>(splitter_address);
+        let recipients = &splitter.recipients;
+        
+        for (i in 0..vector::length(recipients)) {
+            let recipient = vector::borrow(recipients, i);
+            if (recipient.addr == recipient_address) {
+                return true
+            };
+        };
+        
+        false
     }
 
 
