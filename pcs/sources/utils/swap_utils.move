@@ -1,7 +1,7 @@
 /// Uniswap v2 like token swap program
 module pancake::swap_utils {
     use aptos_framework::fungible_asset::{Self, Metadata};
-    use aptos_framework::object::Object;
+    use aptos_framework::object::{Self, Object};
     use aptos_std::comparator;
     use std::string;
 
@@ -54,13 +54,12 @@ module pancake::swap_utils {
         *string::bytes(&asset_name)
     }
 
-    // convert Struct to bytes ,then compare
-    fun compare_struct(x_metadata: Object<Metadata>, y_metadata: Object<Metadata>): u8 {
-        let x_name_bytes = get_asset_name_in_bytes(x_metadata);
-        let y_name_bytes = get_asset_name_in_bytes(y_metadata);
-        if (comparator::is_greater_than(&comparator::compare_u8_vector(x_name_bytes, y_name_bytes))) {
+    fun compare_addresses(x_metadata: Object<Metadata>, y_metadata: Object<Metadata>): u8 {
+        let x_addr = object::object_address(&x_metadata);
+        let y_addr = object::object_address(&y_metadata);
+        if (comparator::is_greater_than(&comparator::compare(x_name_bytes, y_name_bytes))) {
             GREATER
-        } else if (comparator::is_equal(&comparator::compare_u8_vector(x_name_bytes, y_name_bytes))) {
+        } else if (comparator::is_equal(&comparator::compare(x_name_bytes, y_name_bytes))) {
             EQUAL
         } else {
             SMALLER
@@ -79,8 +78,8 @@ module pancake::swap_utils {
         EQUAL
     }
 
-    public fun sort_token_type(x_metadata: Object<Metadata>, y_metadata: Object<Metadata>): bool {
-        let compare_x_y: u8 = compare_struct(x_metadata, y_metadata);
+    public fun sort_assets(x_metadata: Object<Metadata>, y_metadata: Object<Metadata>): bool {
+        let compare_x_y: u8 = compare_addresses(x_metadata, y_metadata);
         assert!(compare_x_y != get_equal_enum(), ERROR_SAME_COIN);
         (compare_x_y == get_smaller_enum())
     }
