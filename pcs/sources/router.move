@@ -27,7 +27,7 @@ module pancake::router {
         x_metadata: Object<Metadata>,
         y_metadata: Object<Metadata>
     ) {
-        if (swap_utils::sort_token_type(x_metadata, y_metadata)) {
+        if (swap_utils::sort_assets(x_metadata, y_metadata)) {
             swap::create_pair(sender, x_metadata, y_metadata);
         } else {
             swap::create_pair(sender, y_metadata, x_metadata);
@@ -52,7 +52,7 @@ module pancake::router {
         let amount_x;
         let amount_y;
         let _lp_amount;
-        if (swap_utils::sort_token_type(x_metadata, y_metadata)) {
+        if (swap_utils::sort_assets(x_metadata, y_metadata)) {
             (amount_x, amount_y, _lp_amount) = swap::add_liquidity(sender, x_metadata, y_metadata, amount_x_desired, amount_y_desired);
             assert!(amount_x >= amount_x_min, E_INSUFFICIENT_X_AMOUNT);
             assert!(amount_y >= amount_y_min, E_INSUFFICIENT_Y_AMOUNT);
@@ -82,7 +82,7 @@ module pancake::router {
         is_pair_created_internal(x_metadata, y_metadata);
         let amount_x;
         let amount_y;
-        if (swap_utils::sort_token_type(x_metadata, y_metadata)) {
+        if (swap_utils::sort_assets(x_metadata, y_metadata)) {
             (amount_x, amount_y) = swap::remove_liquidity(sender, x_metadata, y_metadata, liquidity);
             assert!(amount_x >= amount_x_min, E_INSUFFICIENT_X_AMOUNT);
             assert!(amount_y >= amount_y_min, E_INSUFFICIENT_Y_AMOUNT);
@@ -102,7 +102,7 @@ module pancake::router {
         amount_x_out: u64,
         amount_y_out: u64
     ) {
-        if (swap_utils::sort_token_type(x_metadata, y_metadata)){
+        if (swap_utils::sort_assets(x_metadata, y_metadata)){
             swap::add_swap_event_with_address(sender_addr, x_metadata, y_metadata, amount_x_in, amount_y_in, amount_x_out, amount_y_out);
         } else {
             swap::add_swap_event_with_address(sender_addr, y_metadata, x_metadata, amount_y_in, amount_x_in, amount_y_out, amount_x_out);
@@ -131,7 +131,7 @@ module pancake::router {
         y_min_out: u64,
     ) {
         is_pair_created_internal(x_metadata, y_metadata);
-        let y_out = if (swap_utils::sort_token_type(x_metadata, y_metadata)) {
+        let y_out = if (swap_utils::sort_assets(x_metadata, y_metadata)) {
             swap::swap_exact_x_to_y(sender, x_metadata, y_metadata, x_in, signer::address_of(sender))
         } else {
             swap::swap_exact_y_to_x<Y, X>(sender, x_in, signer::address_of(sender))
@@ -149,7 +149,7 @@ module pancake::router {
         x_max_in: u64,
     ) {
         is_pair_created_internal(x_metadata, y_metadata);
-        let x_in = if (swap_utils::sort_token_type(x_metadata, y_metadata)) {
+        let x_in = if (swap_utils::sort_assets(x_metadata, y_metadata)) {
             let (rin, rout, _) = swap::token_reserves(x_metadata, y_metadata);
             let amount_in = swap_utils::get_amount_in(y_out, rin, rout);
             swap::swap_x_to_exact_y(sender, x_metadata, y_metadata, amount_in, y_out, signer::address_of(sender))
@@ -170,12 +170,12 @@ module pancake::router {
     ): FungibleAsset {
         if (is_x_to_y) {
             let (x_out, y_out) = swap::swap_exact_x_to_y_direct(x_metadata, y_metadata, x_in);
-            coin::destroy_zero(x_out);
+            fungible_asset::destroy_zero(x_out);
             y_out
         }
         else {
             let (y_out, x_out) = swap::swap_exact_y_to_x_direct(y_metadata, x_metadata, x_in);
-            coin::destroy_zero(x_out);
+            fungible_asset::destroy_zero(x_out);
             y_out
         }
     }
@@ -186,10 +186,10 @@ module pancake::router {
         x_in: FungibleAsset
     ): FungibleAsset {
         is_pair_created_internal(x_metadata, y_metadata);
-        let x_in_amount = coin::value(&x_in);
-        let is_x_to_y = swap_utils::sort_token_type(x_metadata, y_metadata);
+        let x_in_amount = fungible_asset::amount(&x_in);
+        let is_x_to_y = swap_utils::sort_assets(x_metadata, y_metadata);
         let y_out = get_intermediate_output(x_metadata, y_metadata, is_x_to_y, x_in);
-        let y_out_amount = coin::value(&y_out);
+        let y_out_amount = fungible_asset::amount(&y_out);
         add_swap_event_with_address_internal(x_metadata, y_metadata, @zero, x_in_amount, 0, 0, y_out_amount);
         y_out
     }
@@ -203,12 +203,12 @@ module pancake::router {
     ): FungibleAsset {
         if (is_x_to_y) {
             let (x_out, y_out) = swap::swap_x_to_exact_y_direct(x_metadata, y_metadata, x_in, amount_out);
-            coin::destroy_zero(x_out);
+            fungible_asset::destroy_zero(x_out);
             y_out
         }
         else {
             let (y_out, x_out) = swap::swap_y_to_exact_x_direct(y_metadata, x_metadata, x_in, amount_out);
-            coin::destroy_zero(x_out);
+            fungible_asset::destroy_zero(x_out);
             y_out
         }
     }
@@ -234,7 +234,7 @@ module pancake::router {
         y_out_amount: u64
     ): u64 {
         is_pair_created_internal(x_metadata, y_metadata);
-        let is_x_to_y = swap_utils::sort_token_type(x_metadata, y_metadata);
+        let is_x_to_y = swap_utils::sort_assets(x_metadata, y_metadata);
         get_amount_in_internal(x_metadata, y_metadata, is_x_to_y, y_out_amount)
     }
 
@@ -245,9 +245,9 @@ module pancake::router {
         y_out_amount: u64
     ): (FungibleAsset, FungibleAsset) {
         is_pair_created_internal(x_metadata, y_metadata);
-        let is_x_to_y = swap_utils::sort_token_type(x_metadata, y_metadata);
+        let is_x_to_y = swap_utils::sort_assets(x_metadata, y_metadata);
         let x_in_withdraw_amount = get_amount_in_internal(x_metadata, y_metadata, is_x_to_y, y_out_amount);
-        let x_in_amount = coin::value(&x_in);
+        let x_in_amount = fungible_asset::amount(&x_in);
         assert!(x_in_amount >= x_in_withdraw_amount, E_INSUFFICIENT_X_AMOUNT);
         let x_in_left = coin::extract(&mut x_in, x_in_amount - x_in_withdraw_amount);
         let y_out = get_intermediate_output_x_to_exact_y(x_metadata, y_metadata, is_x_to_y, x_in, y_out_amount);
@@ -267,10 +267,10 @@ module pancake::router {
     ): u64 {
         let asset_x = coin::withdraw(x_metadata, sender, x_in);
         let asset_y = get_intermediate_output(x_metadata, y_metadata, first_is_x_to_y, asset_x);
-        let assets_y_out = coin::value(&asset_y);
+        let assets_y_out = fungible_asset::amount(&asset_y);
         let asset_z = get_intermediate_output(y_metadata, z_metadata, second_is_y_to_z, asset_y);
 
-        let asset_z_amt = coin::value(&asset_z);
+        let asset_z_amt = fungible_asset::amount(&asset_z);
 
         assert!(asset_z_amt >= z_min_out, E_OUTPUT_LESS_THAN_MIN);
         let sender_addr = signer::address_of(sender);
@@ -293,9 +293,9 @@ module pancake::router {
     ) {
         is_pair_created_internal(x_metadata, y_metadata);
         is_pair_created_internal(y_metadata, z_metadata);
-        let first_is_x_to_y: bool = swap_utils::sort_token_type(x_metadata, y_metadata);
+        let first_is_x_to_y: bool = swap_utils::sort_assets(x_metadata, y_metadata);
 
-        let second_is_y_to_z: bool = swap_utils::sort_token_type(y_metadata, z_metadata);
+        let second_is_y_to_z: bool = swap_utils::sort_assets(y_metadata, z_metadata);
 
         swap_exact_input_double_internal(
             sender, 
@@ -342,7 +342,7 @@ module pancake::router {
         let asset_y = get_intermediate_output_x_to_exact_y(x_metadata, y_metadata, first_is_x_to_y, asset_x, y_out);
         let asset_z = get_intermediate_output_x_to_exact_y<Y, Z>(y_metadata, z_metadata, second_is_y_to_z, asset_y, z_out);
 
-        let asset_z_amt = coin::value(&asset_z);
+        let asset_z_amt = fungible_asset::amount(&asset_z);
         let sender_addr = signer::address_of(sender);
         swap::check_or_register_asset_store<Z>(sender);
         coin::deposit(sender_addr, asset_z);
@@ -363,9 +363,9 @@ module pancake::router {
     ) {
         is_pair_created_internal(x_metadata, y_metadata);
         is_pair_created_internal(y_metadata, z_metadata);
-        let first_is_x_to_y: bool = swap_utils::sort_token_type(x_metadata, y_metadata);
+        let first_is_x_to_y: bool = swap_utils::sort_assets(x_metadata, y_metadata);
 
-        let second_is_y_to_z: bool = swap_utils::sort_token_type(y_metadata, z_metadata);
+        let second_is_y_to_z: bool = swap_utils::sort_assets(y_metadata, z_metadata);
 
         swap_exact_output_double_internal(
             sender, 
@@ -393,14 +393,14 @@ module pancake::router {
     ): u64 {
         let asset_x = coin::withdraw<X>(sender, x_in);
         let asset_y = get_intermediate_output(x_metadata, y_metadata, first_is_x_to_y, asset_x);
-        let assets_y_out = coin::value(&asset_y);
+        let assets_y_out = fungible_asset::amount(&asset_y);
 
         let asset_z = get_intermediate_output(y_metadata, z_metadata, second_is_y_to_z, asset_y);
-        let assets_z_out = coin::value(&asset_z);
+        let assets_z_out = fungible_asset::amount(&asset_z);
 
         let asset_a = get_intermediate_output(z_metadata, a_metadata, third_is_z_to_a, asset_z);
 
-        let asset_a_amt = coin::value(&asset_a);
+        let asset_a_amt = fungible_asset::amount(&asset_a);
 
         assert!(asset_a_amt >= a_min_out, E_OUTPUT_LESS_THAN_MIN);
         let sender_addr = signer::address_of(sender);
@@ -426,11 +426,11 @@ module pancake::router {
         is_pair_created_internal(x_metadata, y_metadata);
         is_pair_created_internal(y_metadata, z_metadata);
         is_pair_created_internal(z_metadata, a_metadata);
-        let first_is_x_to_y: bool = swap_utils::sort_token_type(x_metadata, y_metadata);
+        let first_is_x_to_y: bool = swap_utils::sort_assets(x_metadata, y_metadata);
 
-        let second_is_y_to_z: bool = swap_utils::sort_token_type(y_metadata, z_metadata);
+        let second_is_y_to_z: bool = swap_utils::sort_assets(y_metadata, z_metadata);
 
-        let third_is_z_to_a: bool = swap_utils::sort_token_type(z_metadata, a_metadata);
+        let third_is_z_to_a: bool = swap_utils::sort_assets(z_metadata, a_metadata);
 
         swap_exact_input_triple_internal(
             sender, 
@@ -490,7 +490,7 @@ module pancake::router {
         let asset_z = get_intermediate_output_x_to_exact_y(y_metadata, z_metadata, second_is_y_to_z, asset_y, z_out);
         let asset_a = get_intermediate_output_x_to_exact_y(z_metadata, a_metadata, third_is_z_to_a, asset_z, a_out);
 
-        let asset_a_amt = coin::value(&asset_a);
+        let asset_a_amt = fungible_asset::amount(&asset_a);
         let sender_addr = signer::address_of(sender);
         swap::check_or_register_asset_store<A>(sender);
         coin::deposit(sender_addr, asset_a);
@@ -514,11 +514,11 @@ module pancake::router {
         is_pair_created_internal(x_metadata, y_metadata);
         is_pair_created_internal(y_metadata, z_metadata);
         is_pair_created_internal(z_metadata, a_metadata);
-        let first_is_x_to_y: bool = swap_utils::sort_token_type(x_metadata, y_metadata);
+        let first_is_x_to_y: bool = swap_utils::sort_assets(x_metadata, y_metadata);
 
-        let second_is_y_to_z: bool = swap_utils::sort_token_type(y_metadata, z_metadata);
+        let second_is_y_to_z: bool = swap_utils::sort_assets(y_metadata, z_metadata);
 
-        let third_is_z_to_a: bool = swap_utils::sort_token_type(z_metadata, a_metadata);
+        let third_is_z_to_a: bool = swap_utils::sort_assets(z_metadata, a_metadata);
 
         swap_exact_output_triple_internal(
             sender, 
@@ -551,16 +551,16 @@ module pancake::router {
     ): u64 {
         let asset_x = coin::withdraw<X>(sender, x_in);
         let asset_y = get_intermediate_output(x_metadata, y_metadata, first_is_x_to_y, asset_x);
-        let assets_y_out = coin::value(&asset_y);
+        let assets_y_out = fungible_asset::amount(&asset_y);
 
         let asset_z = get_intermediate_output(y_metadata, z_metadata, second_is_y_to_z, asset_y);
-        let assets_z_out = coin::value(&asset_z);
+        let assets_z_out = fungible_asset::amount(&asset_z);
 
         let asset_a = get_intermediate_output(z_metadata, a_metadata, third_is_z_to_a, asset_z);
-        let asset_a_out = coin::value(&asset_a);
+        let asset_a_out = fungible_asset::amount(&asset_a);
 
         let asset_b = get_intermediate_output(a_metadata, b_metadata, fourth_is_a_to_b, asset_a);
-        let asset_b_amt = coin::value(&asset_b);
+        let asset_b_amt = fungible_asset::amount(&asset_b);
 
         assert!(asset_b_amt >= b_min_out, E_OUTPUT_LESS_THAN_MIN);
         let sender_addr = signer::address_of(sender);
@@ -589,13 +589,13 @@ module pancake::router {
         is_pair_created_internal(y_metadata, z_metadata);
         is_pair_created_internal(z_metadata, a_metadata);
         is_pair_created_internal(a_metadata, b_metadata);
-        let first_is_x_to_y: bool = swap_utils::sort_token_type(x_metadata, y_metadata);
+        let first_is_x_to_y: bool = swap_utils::sort_assets(x_metadata, y_metadata);
 
-        let second_is_y_to_z: bool = swap_utils::sort_token_type(y_metadata, z_metadata);
+        let second_is_y_to_z: bool = swap_utils::sort_assets(y_metadata, z_metadata);
 
-        let third_is_z_to_a: bool = swap_utils::sort_token_type(z_metadata, a_metadata);
+        let third_is_z_to_a: bool = swap_utils::sort_assets(z_metadata, a_metadata);
 
-        let fourth_is_a_to_b: bool = swap_utils::sort_token_type(a_metadata, b_metadata);
+        let fourth_is_a_to_b: bool = swap_utils::sort_assets(a_metadata, b_metadata);
 
         swap_exact_input_quadruple_internal(
             sender, 
@@ -663,7 +663,7 @@ module pancake::router {
         let asset_a = get_intermediate_output_x_to_exact_y(z_metadata, a_metadata, third_is_z_to_a, asset_z, a_out);
         let asset_b = get_intermediate_output_x_to_exact_y(a_metadata, b_metadata, fourth_is_a_to_b, asset_a, b_out);
 
-        let asset_b_amt = coin::value(&asset_b);
+        let asset_b_amt = fungible_asset::amount(&asset_b);
         let sender_addr = signer::address_of(sender);
         swap::check_or_register_asset_store<B>(sender);
         coin::deposit(sender_addr, asset_b);
@@ -690,13 +690,13 @@ module pancake::router {
         is_pair_created_internal(y_metadata, z_metadata);
         is_pair_created_internal(z_metadata, a_metadata);
         is_pair_created_internal(a_metadata, b_metadata);
-        let first_is_x_to_y: bool = swap_utils::sort_token_type(x_metadata, y_metadata);
+        let first_is_x_to_y: bool = swap_utils::sort_assets(x_metadata, y_metadata);
 
-        let second_is_y_to_z: bool = swap_utils::sort_token_type(y_metadata, z_metadata);
+        let second_is_y_to_z: bool = swap_utils::sort_assets(y_metadata, z_metadata);
 
-        let third_is_z_to_a: bool = swap_utils::sort_token_type(z_metadata, a_metadata);
+        let third_is_z_to_a: bool = swap_utils::sort_assets(z_metadata, a_metadata);
 
-        let fourth_is_a_to_b = swap_utils::sort_token_type(a_metadata, b_metadata);
+        let fourth_is_a_to_b = swap_utils::sort_assets(a_metadata, b_metadata);
 
         swap_exact_output_quadruple_internal(
             sender, 
