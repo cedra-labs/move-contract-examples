@@ -61,6 +61,7 @@ await client.distributeFees(payer, creator.address, 100_000_000);
 - `distribute_fees(splitter_owner: address, asset_metadata: Object<Metadata>, amount: u64)`
 - `get_splitter_info(splitter_address: address): (vector<Recipient>, u64)` (view)
 - `splitter_exists(splitter_address: address): bool` (view)
+- `is_recipient(splitter_address: address, recipient_address: address): bool` (view)
 
 ### Distribution Formula
 
@@ -99,6 +100,7 @@ const info = await client.getSplitterInfo(address);
 fee-splitter/
 ├── contract/
 │   ├── sources/fee_splitter.move
+│   ├── tests/fee_splitter_test.move
 │   └── Move.toml
 ├── client/
 │   ├── src/index.ts
@@ -116,18 +118,37 @@ fee-splitter/
 ### Build and Test
 
 ```bash
-# Deploy contract
+# Run unit tests
 cd contract
+aptos move test --named-addresses FeeSplitter=default
+
+# Deploy contract
 aptos init
 aptos account fund-with-faucet
 aptos move compile --named-addresses FeeSplitter=default
 aptos move publish --named-addresses FeeSplitter=default
 
 # Test client
-cd client
+cd ../client
 npm install
 npm start
 ```
+
+#### Running Tests
+
+The contract includes comprehensive unit tests covering all functionality:
+
+```bash
+cd contract
+aptos move test --named-addresses FeeSplitter=default
+```
+
+**Test Coverage:**
+- ✅ Splitter creation (single/multiple recipients, maximum shares)
+- ✅ Multiple fee distribution cycles
+- ✅ View functions (`get_splitter_info`, `splitter_exists`, `is_recipient`)
+- ✅ Error cases (invalid inputs, non-existent splitters)
+- ✅ Edge cases (zero amounts, excessive shares)
 
 ## Security Features
 
