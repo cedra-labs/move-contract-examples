@@ -1,0 +1,17 @@
+name: "Move Tests"
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  move-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Aptos CLI
+        run: curl -fsSL "https://aptos.dev/scripts/install_cli.py" | python3
+        shell: bash
+      - uses: actions/checkout@v4
+      - name: Runs move tests.
+        run: aptos move test --dev
