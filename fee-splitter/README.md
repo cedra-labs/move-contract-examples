@@ -18,8 +18,8 @@ The Fee Splitter contract allows you to:
 cd contract
 aptos init
 aptos account fund-with-faucet
-aptos move compile --named-addresses FeeSplitter=default
-aptos move publish --named-addresses FeeSplitter=default
+aptos move compile --named-addresses fee_splitter=default
+aptos move publish --named-addresses fee_splitter=default
 ```
 
 ### Run Client Example
@@ -120,13 +120,13 @@ fee-splitter/
 ```bash
 # Run unit tests
 cd contract
-aptos move test --named-addresses FeeSplitter=default
+aptos move test --named-addresses fee_splitter=default
 
 # Deploy contract
 aptos init
 aptos account fund-with-faucet
-aptos move compile --named-addresses FeeSplitter=default
-aptos move publish --named-addresses FeeSplitter=default
+aptos move compile --named-addresses fee_splitter=default
+aptos move publish --named-addresses fee_splitter=default
 
 # Test client
 cd ../client
@@ -140,7 +140,7 @@ The contract includes comprehensive unit tests covering all functionality:
 
 ```bash
 cd contract
-aptos move test --named-addresses FeeSplitter=default
+aptos move test --named-addresses fee_splitter=default
 ```
 
 **Test Coverage:**
