@@ -1,4 +1,4 @@
-module FeeSplitter::FeeSplitter {
+module fee_splitter::fee_splitter {
     use aptos_framework::fungible_asset::Metadata;
     use aptos_framework::primary_fungible_store;
     use aptos_framework::object::Object;
@@ -80,9 +80,6 @@ module FeeSplitter::FeeSplitter {
         assert!(exists<FeeSplitter>(splitter_owner), error::not_found(ESPLITTER_NOT_FOUND));
         assert!(amount > 0, error::invalid_argument(EINVALID_AMOUNT));
         
-        // Check sender has enough balance
-        let sender_addr = signer::address_of(sender);
-        
         let splitter = borrow_global<FeeSplitter>(splitter_owner);
         let total_shares = splitter.total_shares;
         let recipients = &splitter.recipients;
@@ -99,7 +96,6 @@ module FeeSplitter::FeeSplitter {
         };
     }
 
-    /// Get splitter info - returns recipients and total shares
     #[view]
     public fun get_splitter_info(splitter_address: address): (vector<Recipient>, u64) acquires FeeSplitter {
         assert!(exists<FeeSplitter>(splitter_address), error::not_found(ESPLITTER_NOT_FOUND));
@@ -107,13 +103,11 @@ module FeeSplitter::FeeSplitter {
         (splitter.recipients, splitter.total_shares)
     }
 
-    /// Check if a splitter exists at the given address
     #[view]
     public fun splitter_exists(splitter_address: address): bool {
         exists<FeeSplitter>(splitter_address)
     }
 
-    /// Check if a given address is a recipient in the splitter
     #[view]
     public fun is_recipient(splitter_address: address, recipient_address: address): bool acquires FeeSplitter {
         if (!exists<FeeSplitter>(splitter_address)) {

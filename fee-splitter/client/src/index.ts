@@ -8,7 +8,7 @@ import {
 
 // Configuration
 const MODULE_ADDRESS = "_"; // Replace with your deployed contract address
-const MODULE_NAME = "FeeSplitter";
+const MODULE_NAME = "fee_splitter";
 
 // Token amounts (in smallest unit of CEDRA)
 const ONE_CEDRA = 100_000_000;
