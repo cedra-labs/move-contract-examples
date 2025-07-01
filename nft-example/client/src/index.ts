@@ -10,7 +10,7 @@ import {
 } from "@cedra-labs/ts-sdk";
 
 // Constants for V2 contract
-const MODULE_ADDRESS = "0xb96e3ce0f856099bce9840e66f4cb8187e399c8f8644eb00de47f0a7c50b3d68"; // Deployed contract address
+const MODULE_ADDRESS = "_"; // Deployed contract address
 const NETWORK = Network.DEVNET;
 const FULLNODE_URL = "https://testnet.cedra.dev/v1";
 const FAUCET_URL = "https://faucet-api.cedra.dev";
@@ -20,7 +20,7 @@ const ONE_CEDRA_IN_OCTAS = 100_000_000;
 // ⚠️ SECURITY WARNING: This is for educational purposes only!
 // NEVER hardcode or reveal private keys in production code or commit them to version control.
 // In production, use environment variables, secure key management systems, or hardware wallets.
-const DEPLOYER_PRIVATE_KEY_RAW = "0x48c47d76d52bf83614b08b4030a18274a8a3334e1f3bd5f792e2b60571df8e6a"; // Deployer account private key (LEARNING PURPOSE ONLY)
+const DEPLOYER_PRIVATE_KEY_RAW = "_"; // Deployer account private key (LEARNING PURPOSE ONLY)
 
 // Format private key for AIP-80 compliance (educational demonstration)
 const DEPLOYER_PRIVATE_KEY = PrivateKey.formatPrivateKey(DEPLOYER_PRIVATE_KEY_RAW, PrivateKeyVariants.Ed25519);
