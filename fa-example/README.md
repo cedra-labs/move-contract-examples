@@ -4,7 +4,7 @@ This repository contains a Move smart contract for a fungible asset called "Cedr
 
 ## Prerequisites
 
-- [CLI](https://aptos.dev/tools/aptos-cli/install-cli/) (v2.0.0 or later)
+- [CLI](https://docs.cedra.network/getting-started/cli) (v1.0.0 or later)
 - [Node.js](https://nodejs.org/) LTS version (v16.x or later)
 - [pnpm](https://pnpm.io/) (v6.x or later)
 
@@ -19,7 +19,7 @@ This repository contains a Move smart contract for a fungible asset called "Cedr
 
 ```bash
 cd contract
-aptos init
+cedra init
 ```
 
 This will create a new account or use an existing one. Follow the prompts to set it up.
@@ -27,19 +27,19 @@ This will create a new account or use an existing one. Follow the prompts to set
 2. Compile the contract:
 
 ```bash
-aptos move compile
+cedra move compile
 ```
 
 3. Publish the contract:
 
 ```bash
-aptos move publish
+cedra move publish
 ```
 
 4. Take note of the account address where the contract is deployed, you'll need it for the client:
 
 ```bash
-aptos account list --query modules
+cedra account list --query modules
 ```
 
 ## Setting Up and Running the Client
@@ -96,9 +96,9 @@ If you encounter issues with the client:
 1. Make sure the contract is deployed correctly
 2. Check that the MODULE_ADDRESS and ADMIN_PRIVATE_KEY in the client match your deployed contract
 3. Ensure your Node.js version is LTS (use `nvm use --lts` if you have nvm installed)
-4. Check the network connectivity to Aptos devnet
+4. Check the network connectivity to Cedra devnet
 
-## Aptos Module Details
+## Cedra Module Details
 
 The Move contract implements a fungible asset with the following functions:
 

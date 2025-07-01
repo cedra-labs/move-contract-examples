@@ -18,6 +18,7 @@ module CedraFungible::CedraAsset {
     struct ManagedFungibleAsset has key {
         mint_ref: MintRef,
         transfer_ref: TransferRef,
+        admin: address,
     }
 
     /// Initialize metadata object and store the refs.
@@ -39,7 +40,11 @@ module CedraFungible::CedraAsset {
         let metadata_object_signer = object::generate_signer(constructor_ref);
         move_to(
             &metadata_object_signer,
-            ManagedFungibleAsset { mint_ref, transfer_ref }
+            ManagedFungibleAsset { 
+                mint_ref, 
+                transfer_ref,
+                admin: signer::address_of(admin),
+            }
         );
     }
 
@@ -67,12 +72,13 @@ module CedraFungible::CedraAsset {
     }
 
     /// Borrow the immutable reference of the refs of `metadata`.
-    /// This validates that the signer is the metadata object's owner.
+    /// This validates that the signer is the admin.
     inline fun authorized_borrow_refs(
         owner: &signer,
         asset: Object<Metadata>,
     ): &ManagedFungibleAsset acquires ManagedFungibleAsset {
-        assert!(object::is_owner(asset, signer::address_of(owner)), error::permission_denied(ENOT_OWNER));
-        borrow_global<ManagedFungibleAsset>(object::object_address(&asset))
+        let refs = borrow_global<ManagedFungibleAsset>(object::object_address(&asset));
+        assert!(refs.admin == signer::address_of(owner), error::permission_denied(ENOT_OWNER));
+        refs
     }
 }
