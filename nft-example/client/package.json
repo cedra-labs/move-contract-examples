@@ -9,7 +9,7 @@
 		"build": "tsc"
 	},
 	"dependencies": {
-		"@aptos-labs/ts-sdk": "^2.0.0"
+		"@cedra-labs/ts-sdk": "^2.2.1"
 	},
 	"devDependencies": {
 		"@types/node": "^22.15.18",
@@ -18,6 +18,13 @@
 		"tsx": "^4.19.4",
 		"typescript": "^5.8.3"
 	},
-	"keywords": ["cedra", "nft", "digital-assets", "move", "blockchain", "development"],
+	"keywords": [
+		"cedra",
+		"nft",
+		"digital-assets",
+		"move",
+		"blockchain",
+		"development"
+	],
 	"license": "MIT"
 }
