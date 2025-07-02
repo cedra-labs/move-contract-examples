@@ -10,7 +10,7 @@
     "dev": "tsx --watch src/index.ts"
   },
   "dependencies": {
-    "@aptos-labs/ts-sdk": "^2.0.0"
+    "@cedra-labs/ts-sdk": "^2.2.1"
   },
   "devDependencies": {
     "@types/node": "^22.15.18",
