@@ -1,10 +1,10 @@
 import { 
   Account, 
   AccountAddress, 
-  Aptos, 
-  AptosConfig, 
+  Cedra, 
+  CedraConfig, 
   Network,
-} from "@aptos-labs/ts-sdk";
+} from "@cedra-labs/ts-sdk";
 
 // Configuration
 const MODULE_ADDRESS = "_"; // Replace with your deployed contract address
@@ -29,7 +29,7 @@ interface SplitterInfo {
  * Fee Splitter Client Class
  */
 class FeeSplitterClient {
-  private aptos: Aptos;
+  private cedra: Cedra;
   private moduleAddress: string;
   private moduleName: string;
 
@@ -39,8 +39,10 @@ class FeeSplitterClient {
       console.warn("⚠️  Warning: MODULE_ADDRESS is not set. Please deploy the contract and update MODULE_ADDRESS in the code.");
     }
     
-    const config = new AptosConfig({ network });
-    this.aptos = new Aptos(config);
+    const fullnode = "https://testnet.cedra.dev/v1";
+    const faucet = "https://faucet-api.cedra.dev";
+    const config = new CedraConfig({ network, fullnode, faucet });
+    this.cedra = new Cedra(config);
     this.moduleAddress = moduleAddress;
     this.moduleName = MODULE_NAME;
   }
@@ -50,7 +52,7 @@ class FeeSplitterClient {
    */
   async fundAccount(accountAddress: AccountAddress, amount: number = ONE_CEDRA): Promise<void> {
     try {
-      await this.aptos.faucet.fundAccount({ accountAddress, amount });
+      await this.cedra.faucet.fundAccount({ accountAddress, amount });
     } catch (error) {
       console.error(`❌ Error funding account: ${error}`);
       throw error;
@@ -83,7 +85,7 @@ class FeeSplitterClient {
    */
   async checkBalance(name: string, address: AccountAddress): Promise<number> {
     try {
-      const balanceResult = await this.aptos.view({
+      const balanceResult = await this.cedra.view({
         payload: {
           function: "0x1::primary_fungible_store::balance",
           typeArguments: ["0x1::fungible_asset::Metadata"],
@@ -111,7 +113,7 @@ class FeeSplitterClient {
     const shares = recipients.map(r => r.share.toString());
 
     try {
-      const transaction = await this.aptos.transaction.build.simple({
+      const transaction = await this.cedra.transaction.build.simple({
         sender: creator.accountAddress,
         data: {
           function: `${this.moduleAddress}::${this.moduleName}::create_splitter`,
@@ -119,12 +121,12 @@ class FeeSplitterClient {
         }
       });
 
-      const response = await this.aptos.signAndSubmitTransaction({ 
+      const response = await this.cedra.signAndSubmitTransaction({ 
         signer: creator, 
         transaction 
       });
       
-      await this.aptos.waitForTransaction({ transactionHash: response.hash });
+      await this.cedra.waitForTransaction({ transactionHash: response.hash });
       console.log("✅ Fee splitter created successfully!");
       
       return response.hash;
@@ -146,7 +148,7 @@ class FeeSplitterClient {
       // Get CEDRA metadata for the transaction (client-side)
       const cedraMetadata = this.getCEDRAMetadata();
       
-      const transaction = await this.aptos.transaction.build.simple({
+      const transaction = await this.cedra.transaction.build.simple({
         sender: sender.accountAddress,
         data: {
           function: `${this.moduleAddress}::${this.moduleName}::distribute_fees`,
@@ -158,12 +160,12 @@ class FeeSplitterClient {
         }
       });
 
-      const response = await this.aptos.signAndSubmitTransaction({ 
+      const response = await this.cedra.signAndSubmitTransaction({ 
         signer: sender, 
         transaction 
       });
       
-      await this.aptos.waitForTransaction({ transactionHash: response.hash });
+      await this.cedra.waitForTransaction({ transactionHash: response.hash });
       console.log("✅ Fees distributed successfully!");
       
       return response.hash;
@@ -178,7 +180,7 @@ class FeeSplitterClient {
    */
   async getSplitterInfo(splitterAddress: AccountAddress): Promise<SplitterInfo | null> {
     try {
-      const result = await this.aptos.view({
+      const result = await this.cedra.view({
         payload: {
           function: `${this.moduleAddress}::${this.moduleName}::get_splitter_info`,
           functionArguments: [splitterAddress.toString()]
@@ -212,7 +214,7 @@ class FeeSplitterClient {
    */
   async splitterExists(splitterAddress: AccountAddress): Promise<boolean> {
     try {
-      const result = await this.aptos.view({
+      const result = await this.cedra.view({
         payload: {
           function: `${this.moduleAddress}::${this.moduleName}::splitter_exists`,
           functionArguments: [splitterAddress.toString()]
@@ -231,7 +233,7 @@ class FeeSplitterClient {
    */
   async isRecipient(splitterAddress: AccountAddress, recipientAddress: AccountAddress): Promise<boolean> {
     try {
-      const result = await this.aptos.view({
+      const result = await this.cedra.view({
         payload: {
           function: `${this.moduleAddress}::${this.moduleName}::is_recipient`,
           functionArguments: [splitterAddress.toString(), recipientAddress.toString()]

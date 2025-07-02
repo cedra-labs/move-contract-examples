@@ -16,10 +16,10 @@ The Fee Splitter contract allows you to:
 
 ```bash
 cd contract
-aptos init
-aptos account fund-with-faucet
-aptos move compile --named-addresses fee_splitter=default
-aptos move publish --named-addresses fee_splitter=default
+cedra init
+cedra account fund-with-faucet
+cedra move compile --named-addresses fee_splitter=default
+cedra move publish --named-addresses fee_splitter=default
 ```
 
 ### Run Client Example
@@ -74,7 +74,7 @@ recipient_amount = (total_amount × recipient_share) ÷ total_shares
 ### Installation
 
 ```bash
-npm install @aptos-labs/ts-sdk
+npm install @cedra-labs/ts-sdk
 ```
 
 ### Usage
@@ -120,13 +120,13 @@ fee-splitter/
 ```bash
 # Run unit tests
 cd contract
-aptos move test --named-addresses fee_splitter=default
+cedra move test --named-addresses fee_splitter=default
 
 # Deploy contract
-aptos init
-aptos account fund-with-faucet
-aptos move compile --named-addresses fee_splitter=default
-aptos move publish --named-addresses fee_splitter=default
+cedra init
+cedra account fund-with-faucet
+cedra move compile --named-addresses fee_splitter=default
+cedra move publish --named-addresses fee_splitter=default
 
 # Test client
 cd ../client
@@ -140,7 +140,7 @@ The contract includes comprehensive unit tests covering all functionality:
 
 ```bash
 cd contract
-aptos move test --named-addresses fee_splitter=default
+cedra move test --named-addresses fee_splitter=default
 ```
 
 **Test Coverage:**

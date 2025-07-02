@@ -1,35 +1,39 @@
-import { Account, AccountAddress, Aptos, AptosConfig, Network, Ed25519PrivateKey } from "@aptos-labs/ts-sdk";
+import { Account, AccountAddress, Cedra, CedraConfig, Network, Ed25519PrivateKey } from "@cedra-labs/ts-sdk";
 
 // Constants
 const NETWORK = Network.DEVNET;
 const MODULE_ADDRESS = "_";
 const MODULE_NAME = "CedraAsset";
 const MODULE_FULL_PATH = `${MODULE_ADDRESS}::${MODULE_NAME}`;
+
+// Cedra network configuration
+const fullnode = "https://testnet.cedra.dev/v1";
+const faucet = "https://faucet-api.cedra.dev";
 // Using private key to create account is a security risk, this is only for educational purposes.
 // For production use, do not define your private key as this will expose to the public
 const ADMIN_PRIVATE_KEY = "_";
 
 // Token amounts
-const ONE_APT_IN_OCTAS = 100_000_000; // 1 APT = 100 million octas
+const ONE_CEDRA_IN_OCTAS = 100_000_000; // 1 CEDRA = 100 million octas
 const TRANSFER_AMOUNT = 500;
 const RETURN_AMOUNT = 250;
 
 /**
- * Funds an account with 1 APT
+ * Funds an account with 1 CEDRA
  */
-const fundAccount = async (aptos: Aptos, accountAddress: AccountAddress) => {
-  console.log(`Funding account ${accountAddress.toString()} with 1 APT...`);
-  await aptos.faucet.fundAccount({ accountAddress, amount: ONE_APT_IN_OCTAS });
+const fundAccount = async (cedra: Cedra, accountAddress: AccountAddress) => {
+  console.log(`Funding account ${accountAddress.toString()} with 1 CEDRA...`);
+  await cedra.faucet.fundAccount({ accountAddress, amount: ONE_CEDRA_IN_OCTAS });
   console.log(`Funding completed for ${accountAddress.toString()}`);
 };
 
 /**
  * Checks token balance for an account
  */
-const checkBalance = async (aptos: Aptos, name: string, address: AccountAddress) => {
+const checkBalance = async (cedra: Cedra, name: string, address: AccountAddress) => {
   try {
     // First get the metadata object
-    const metadataResult = await aptos.view({
+    const metadataResult = await cedra.view({
       payload: {
         function: `${MODULE_ADDRESS}::${MODULE_NAME}::get_metadata`,
         typeArguments: [],
@@ -40,7 +44,7 @@ const checkBalance = async (aptos: Aptos, name: string, address: AccountAddress)
     const metadataAddress = (metadataResult[0] as { inner: string }).inner;
     
     // Actually use primary_fungible_store::balance
-    const [balanceStr] = await aptos.view<[string]>({
+    const [balanceStr] = await cedra.view<[string]>({
       payload: {
         function: "0x1::primary_fungible_store::balance",
         typeArguments: ["0x1::fungible_asset::Metadata"],
@@ -64,8 +68,8 @@ const example = async () => {
   console.log(`Using module: ${MODULE_FULL_PATH}`);
 
   // Setup
-  const config = new AptosConfig({ network: NETWORK });
-  const aptos = new Aptos(config);
+  const config = new CedraConfig({ network: NETWORK, fullnode, faucet });
+  const cedra = new Cedra(config);
 
   // Using private key to create account is a security risk, this is only for educational purposes.
   // For production use, do not define your private key as this will expose to the public
@@ -77,15 +81,15 @@ const example = async () => {
   console.log("New User Address: ", user.accountAddress.toString());
   
   // Fund & check initial state
-  await fundAccount(aptos, user.accountAddress);
+  await fundAccount(cedra, user.accountAddress);
   console.log("Checking initial CedraAsset balances...");
-  await checkBalance(aptos, "Admin", admin.accountAddress);
-  await checkBalance(aptos, "New User", user.accountAddress);
+  await checkBalance(cedra, "Admin", admin.accountAddress);
+  await checkBalance(cedra, "New User", user.accountAddress);
 
   try {
     // Step 1: Mint tokens
     console.log("\nMinting tokens to new user...");
-    const mintTxn = await aptos.transaction.build.simple({
+    const mintTxn = await cedra.transaction.build.simple({
       sender: admin.accountAddress,
       data: { 
         function: `${MODULE_ADDRESS}::${MODULE_NAME}::mint`,
@@ -94,21 +98,21 @@ const example = async () => {
     });
     
     console.log("Mint transaction built successfully, signing with admin account...");
-    const mintRes = await aptos.signAndSubmitTransaction({ signer: admin, transaction: mintTxn });
+    const mintRes = await cedra.signAndSubmitTransaction({ signer: admin, transaction: mintTxn });
     console.log("Mint transaction submitted: ", mintRes.hash);
     
     console.log("Waiting for mint transaction to be confirmed...");
-    await aptos.waitForTransaction({ transactionHash: mintRes.hash });
+    await cedra.waitForTransaction({ transactionHash: mintRes.hash });
     console.log("Mint transaction confirmed!");
     
     // Check state after mint
     console.log("\nChecking balances after mint...");
-    await checkBalance(aptos, "Admin", admin.accountAddress);
-    await checkBalance(aptos, "New User", user.accountAddress);
+    await checkBalance(cedra, "Admin", admin.accountAddress);
+    await checkBalance(cedra, "New User", user.accountAddress);
     
     // Step 2: Transfer tokens back
     console.log("\nTransferring tokens from user back to admin...");
-    const transferTxn = await aptos.transaction.build.simple({
+    const transferTxn = await cedra.transaction.build.simple({
       sender: user.accountAddress,
       data: { 
         function: `${MODULE_ADDRESS}::${MODULE_NAME}::transfer`,
@@ -117,17 +121,17 @@ const example = async () => {
     });
     
     console.log("Transfer transaction built successfully, signing with user account...");
-    const transferRes = await aptos.signAndSubmitTransaction({ signer: user, transaction: transferTxn });
+    const transferRes = await cedra.signAndSubmitTransaction({ signer: user, transaction: transferTxn });
     console.log("Transfer transaction submitted: ", transferRes.hash);
     
     console.log("Waiting for transfer transaction to be confirmed...");
-    await aptos.waitForTransaction({ transactionHash: transferRes.hash });
+    await cedra.waitForTransaction({ transactionHash: transferRes.hash });
     console.log("Transfer transaction confirmed!");
     
     // Check final state
     console.log("\nChecking final balances...");
-    await checkBalance(aptos, "Admin", admin.accountAddress);
-    await checkBalance(aptos, "New User", user.accountAddress);
+    await checkBalance(cedra, "Admin", admin.accountAddress);
+    await checkBalance(cedra, "New User", user.accountAddress);
     
     console.log("\nFull flow completed successfully!");
     
