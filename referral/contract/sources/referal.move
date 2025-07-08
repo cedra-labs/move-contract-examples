@@ -1,0 +1,128 @@
+module referral_example::referral_system {
+    use std::signer;
+    use aptos_framework::fungible_asset::{Self, Metadata};
+    use aptos_framework::object::{Self, Object};
+    use aptos_framework::primary_fungible_store;
+    use aptos_framework::event;
+    use aptos_framework::account;
+
+    const E_NOT_INITIALIZED: u64 = 1;
+    const E_ALREADY_REGISTERED: u64 = 2;
+    const E_INVALID_REFERRER: u64 = 3;
+    const E_SELF_REFERRAL: u64 = 4;
+
+    struct ReferralConfig has key {
+        reward_percentage: u64, // 500 = 5%
+        is_active: bool,
+        total_rewards_paid: u64,
+        reward_events: event::EventHandle<RewardEvent>,
+    }
+
+    struct UserReferral has key {
+        referrer: address,
+        referred_count: u64,
+        total_earned: u64,
+    }
+
+    struct RewardEvent has drop, store {
+        referrer: address,
+        buyer: address,
+        amount: u64,
+    }
+
+    public entry fun initialize(admin: &signer, reward_percentage: u64) {
+        move_to(admin, ReferralConfig {
+            reward_percentage,
+            is_active: true,
+            total_rewards_paid: 0,
+            reward_events: account::new_event_handle<RewardEvent>(admin),
+        });
+    }
+
+    /// Register a user with a referrer
+    public entry fun register_with_referrer(
+        user: &signer, 
+        referrer_addr: address
+    ) acquires UserReferral {
+        let user_addr = signer::address_of(user);
+        
+        assert!(!exists<UserReferral>(user_addr), E_ALREADY_REGISTERED);
+        assert!(exists<UserReferral>(referrer_addr), E_INVALID_REFERRER);
+        assert!(user_addr != referrer_addr, E_SELF_REFERRAL);
+        
+        move_to(user, UserReferral {
+            referrer: referrer_addr,
+            referred_count: 0,
+            total_earned: 0,
+        });
+        
+        let referrer_data = borrow_global_mut<UserReferral>(referrer_addr);
+        referrer_data.referred_count = referrer_data.referred_count + 1;
+    }
+
+    /// Register without referrer
+    public entry fun register_solo(user: &signer) {
+        let user_addr = signer::address_of(user);
+        assert!(!exists<UserReferral>(user_addr), E_ALREADY_REGISTERED);
+        
+        move_to(user, UserReferral {
+            referrer: @0x0,
+            referred_count: 0,
+            total_earned: 0,
+        });
+    }
+
+    /// Calculate and pay referral rewards
+    public entry fun process_purchase_with_referral(
+        buyer: &signer,
+        seller: address,
+        asset: Object<Metadata>,
+        amount: u64
+    ) acquires ReferralConfig, UserReferral {
+        let buyer_addr = signer::address_of(buyer);
+        
+        if (!exists<UserReferral>(buyer_addr)) {
+            primary_fungible_store::transfer(buyer, asset, seller, amount);
+            return
+        };
+        
+        let user_data = borrow_global<UserReferral>(buyer_addr);
+        let referrer_addr = user_data.referrer;
+        if (referrer_addr == @0x0) {
+            // No referrer, normal payment
+            primary_fungible_store::transfer(buyer, asset, seller, amount);
+            return  
+        };
+        
+        // Calculate referral reward
+        let config = borrow_global_mut<ReferralConfig>(@referral_example);
+        let reward_amount = (amount * config.reward_percentage) / 10000;
+        let seller_amount = amount - reward_amount;
+        
+        // Pay seller (minus referral fee)
+        primary_fungible_store::transfer(buyer, asset, seller, seller_amount);
+        
+        // Pay referrer
+        primary_fungible_store::transfer(buyer, asset, referrer_addr, reward_amount);
+        
+        let referrer_data = borrow_global_mut<UserReferral>(referrer_addr);
+        referrer_data.total_earned = referrer_data.total_earned + reward_amount;
+        config.total_rewards_paid = config.total_rewards_paid + reward_amount;
+        
+        event::emit_event(&mut config.reward_events, RewardEvent {
+            referrer: referrer_addr,
+            buyer: buyer_addr,
+            amount: reward_amount,
+        });
+    }
+
+    #[view]
+    public fun get_user_stats(user: address): (address, u64, u64) acquires UserReferral {
+        if (!exists<UserReferral>(user)) {
+            return (@0x0, 0, 0)
+        };
+        
+        let data = borrow_global<UserReferral>(user);
+        (data.referrer, data.referred_count, data.total_earned)
+    }
+}
