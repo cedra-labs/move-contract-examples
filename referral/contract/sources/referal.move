@@ -1,15 +1,20 @@
+// TODO: Review changes
 module referral_example::referral_system {
     use std::signer;
-    use aptos_framework::fungible_asset::{Self, Metadata};
-    use aptos_framework::object::{Self, Object};
+    use aptos_framework::fungible_asset::Metadata;
+    use aptos_framework::object::Object;
     use aptos_framework::primary_fungible_store;
     use aptos_framework::event;
     use aptos_framework::account;
+    use aptos_std::math64;
 
     const E_NOT_INITIALIZED: u64 = 1;
     const E_ALREADY_REGISTERED: u64 = 2;
     const E_INVALID_REFERRER: u64 = 3;
     const E_SELF_REFERRAL: u64 = 4;
+    const E_INVALID_REWARD_PERCENTAGE: u64 = 5;
+    
+    const MAX_REWARD_PERCENTAGE: u64 = 10000; // 100%
 
     struct ReferralConfig has key {
         reward_percentage: u64, // 500 = 5%
@@ -31,6 +36,8 @@ module referral_example::referral_system {
     }
 
     public entry fun initialize(admin: &signer, reward_percentage: u64) {
+        assert!(reward_percentage <= MAX_REWARD_PERCENTAGE, E_INVALID_REWARD_PERCENTAGE);
+        
         move_to(admin, ReferralConfig {
             reward_percentage,
             is_active: true,
@@ -94,9 +101,11 @@ module referral_example::referral_system {
             return  
         };
         
-        // Calculate referral reward
+        // Calculate referral reward with overflow protection
         let config = borrow_global_mut<ReferralConfig>(@referral_example);
-        let reward_amount = (amount * config.reward_percentage) / 10000;
+        
+        // Use math64::mul_div for safe multiplication and division
+        let reward_amount = math64::mul_div(amount, config.reward_percentage, 10000);
         let seller_amount = amount - reward_amount;
         
         // Pay seller (minus referral fee)
@@ -124,5 +133,13 @@ module referral_example::referral_system {
         
         let data = borrow_global<UserReferral>(user);
         (data.referrer, data.referred_count, data.total_earned)
+    }
+    
+    #[view]
+    public fun get_global_stats(admin: address): (u64, bool, u64) acquires ReferralConfig {
+        assert!(exists<ReferralConfig>(admin), E_NOT_INITIALIZED);
+        
+        let config = borrow_global<ReferralConfig>(admin);
+        (config.reward_percentage, config.is_active, config.total_rewards_paid)
     }
 }
