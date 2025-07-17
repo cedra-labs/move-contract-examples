@@ -8,10 +8,7 @@ referral_example = "_"
 
 [dev-addresses]
 referral_example = "0x45d869282e5605c700c8f153c80770b5dc9af2beadc3a35aa1c03aabff25f41c"
-
-[dependencies.AptosFramework]
-git = "https://github.com/aptos-labs/aptos-core.git"
-rev = "mainnet"
-subdir = "aptos-move/framework/aptos-framework"
+[dependencies]
+CedraFramework = { git = "https://github.com/cedra-labs/cedra-framework.git", subdir = "cedra-framework", rev = "main" }
 
 [dev-dependencies]

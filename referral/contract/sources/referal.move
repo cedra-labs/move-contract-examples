@@ -1,11 +1,11 @@
 module referral_example::referral_system {
     use std::signer;
-    use aptos_framework::fungible_asset::Metadata;
-    use aptos_framework::object::Object;
-    use aptos_framework::primary_fungible_store;
-    use aptos_framework::event;
-    use aptos_framework::account;
-    use aptos_std::math64;
+    use cedra_framework::fungible_asset::Metadata;
+    use cedra_framework::object::Object;
+    use cedra_framework::primary_fungible_store;
+    use cedra_framework::event;
+    use cedra_framework::account;
+    use cedra_std::math64;
 
     const E_NOT_INITIALIZED: u64 = 1;
     const E_ALREADY_REGISTERED: u64 = 2;

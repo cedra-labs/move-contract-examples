@@ -1,7 +1,7 @@
 module CedraNFTV2::CedraCollectionV2 {
-    use aptos_framework::object::{Self, Object};
-    use aptos_token_objects::collection;
-    use aptos_token_objects::token;
+    use cedra_framework::object::{Self, Object};
+    use cedra_token_objects::collection;
+    use cedra_token_objects::token;
     use std::string::{Self, String};
     use std::option;
 

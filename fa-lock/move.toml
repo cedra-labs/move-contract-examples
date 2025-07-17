@@ -9,9 +9,9 @@ lock_deployer = "_"
 [dev-addresses]
 lock_deployer = "0xc1"
 
-[dependencies.AptosFramework]
-git = "https://github.com/aptos-labs/aptos-framework.git"
-rev = "mainnet"
-subdir = "aptos-framework"
+[dependencies.CedraFramework]
+git = "https://github.com/cedra-labs/cedra-framework.git"
+rev = "main"
+subdir = "cedra-framework"
 
 [dev-dependencies]
