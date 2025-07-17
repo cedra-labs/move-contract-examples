@@ -1,9 +1,9 @@
 #[test_only]
 module lock_deployer::lock_test {
-    use aptos_framework::fungible_asset::{Self, Metadata};
-    use aptos_framework::object::{Self, Object};
-    use aptos_framework::primary_fungible_store;
-    use aptos_framework::timestamp;
+    use cedra_framework::fungible_asset::{Self, Metadata};
+    use cedra_framework::object::{Self, Object};
+    use cedra_framework::primary_fungible_store;
+    use cedra_framework::timestamp;
     use std::option;
     use std::signer;
     use lock_deployer::lock;

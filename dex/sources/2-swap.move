@@ -3,10 +3,10 @@
 module simple_dex::swap {
     use std::signer;
     use std::string;
-    use aptos_framework::fungible_asset::{Self, FungibleAsset, FungibleStore, Metadata};
-    use aptos_framework::object::{Self, ExtendRef, Object};
-    use aptos_framework::option;
-    use aptos_framework::primary_fungible_store;
+    use cedra_framework::fungible_asset::{Self, FungibleAsset, FungibleStore, Metadata};
+    use cedra_framework::object::{Self, ExtendRef, Object};
+    use cedra_framework::option;
+    use cedra_framework::primary_fungible_store;
     use simple_dex::math_amm;
     
     const ERROR_PAIR_NOT_EXISTS: u64 = 1;
@@ -26,7 +26,7 @@ module simple_dex::swap {
     }
     
     /// Create a new trading pair
-    public entry fun create_pair(lp_creator: &signer, x_metadata: Object<Metadata>, y_metadata: Object<Metadata>) acquires TradingPair { 
+    public entry fun create_pair(lp_creator: &signer, x_metadata: Object<Metadata>, y_metadata: Object<Metadata>) { 
         let constructor_ref = &object::create_sticky_object(@simple_dex);
         let maximum_supply = option::none(); // Unlimited supply for LPs
         primary_fungible_store::create_primary_store_enabled_fungible_asset(
@@ -34,7 +34,7 @@ module simple_dex::swap {
             maximum_supply,
             string::utf8(b"HI LP"), // LP name // TODO: create based on tokens?
             string::utf8(b"https://simple.dex/lp.png"), // Icon URL
-            8, // Decimals; 8 is used since this is typical for FAs on Aptos
+            8, // Decimals; 8 is used since this is typical for FAs on Cedra
             string::utf8(b"https://simple.dex/lp.png"), // Icon URL
             string::utf8(b"https://simple.dex") // Project URL
         );
@@ -155,7 +155,7 @@ module simple_dex::swap {
     #[view]
     public fun pair_exists(
         lp_metadata: Object<Metadata>
-    ): bool acquires TradingPair {
+    ): bool {
         let lp_addr = object::object_address(&lp_metadata);
         exists<TradingPair>(lp_addr)
     }

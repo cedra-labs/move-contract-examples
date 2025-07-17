@@ -1,8 +1,8 @@
 module fee_splitter::fee_splitter {
-    use aptos_framework::fungible_asset::Metadata;
-    use aptos_framework::primary_fungible_store;
-    use aptos_framework::object::Object;
-    use aptos_std::math64;
+    use cedra_framework::fungible_asset::Metadata;
+    use cedra_framework::primary_fungible_store;
+    use cedra_framework::object::Object;
+    use cedra_std::math64;
     use std::vector;
     use std::error;
     use std::signer;

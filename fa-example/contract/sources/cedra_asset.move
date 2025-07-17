@@ -1,7 +1,7 @@
 module CedraFungible::CedraAsset {
-    use aptos_framework::fungible_asset::{Self, MintRef, TransferRef, Metadata, FungibleAsset};
-    use aptos_framework::object::{Self, Object};
-    use aptos_framework::primary_fungible_store;
+    use cedra_framework::fungible_asset::{Self, MintRef, TransferRef, Metadata, FungibleAsset};
+    use cedra_framework::object::{Self, Object};
+    use cedra_framework::primary_fungible_store;
     use std::error;
     use std::signer;
     use std::string::utf8;
@@ -13,7 +13,7 @@ module CedraFungible::CedraAsset {
     const ASSET_SYMBOL: vector<u8> = b"CEDRA";
     const ASSET_NAME: vector<u8> = b"CedraAsset";
 
-    #[resource_group_member(group = aptos_framework::object::ObjectGroup)]
+    #[resource_group_member(group = cedra_framework::object::ObjectGroup)]
     /// Hold refs to control the minting, transfer of fungible assets.
     struct ManagedFungibleAsset has key {
         mint_ref: MintRef,
