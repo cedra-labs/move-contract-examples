@@ -1,4 +1,3 @@
-// TODO: Review changes
 module referral_example::referral_system {
     use std::signer;
     use aptos_framework::fungible_asset::Metadata;
@@ -104,14 +103,11 @@ module referral_example::referral_system {
         // Calculate referral reward with overflow protection
         let config = borrow_global_mut<ReferralConfig>(@referral_example);
         
-        // Use math64::mul_div for safe multiplication and division
         let reward_amount = math64::mul_div(amount, config.reward_percentage, 10000);
         let seller_amount = amount - reward_amount;
         
-        // Pay seller (minus referral fee)
         primary_fungible_store::transfer(buyer, asset, seller, seller_amount);
         
-        // Pay referrer
         primary_fungible_store::transfer(buyer, asset, referrer_addr, reward_amount);
         
         let referrer_data = borrow_global_mut<UserReferral>(referrer_addr);
