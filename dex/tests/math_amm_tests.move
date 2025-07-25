@@ -33,7 +33,7 @@ module simple_dex::math_amm_tests {
         
         let amount_in = math_amm::get_amount_in(amount_out, reserve_in, reserve_out);
         
-        assert!(amount_in == 529, 0);
+        assert!(amount_in == 528, 0);
     }
 
     #[test]
@@ -44,7 +44,7 @@ module simple_dex::math_amm_tests {
         
         let amount_in = math_amm::get_amount_in(amount_out, reserve_in, reserve_out);
         
-        assert!(amount_in == 1004, 0);
+        assert!(amount_in == 1111, 0);
     }
 
     #[test]

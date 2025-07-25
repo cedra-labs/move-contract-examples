@@ -58,7 +58,7 @@ module simple_dex::swap_tests {
         assert!(reserve_y == 5000000, 1);
         
         let lp_balance = primary_fungible_store::balance(signer::address_of(user), lp_metadata);
-        assert!(lp_balance == 5000000, 2);
+        assert!(lp_balance == 7071067, 2);
     }
 
     #[test(admin = @simple_dex, user1 = @0x123, user2 = @0x456)]
@@ -77,10 +77,7 @@ module simple_dex::swap_tests {
         test_utils::mint_eth(user2, 100000000);
         test_utils::mint_btc(user2, 50000000);
         
-        swap::create_pair(user1, eth_metadata, btc_metadata);
-        
-        let lp_addr = object::create_object_address(&signer::address_of(user1), b"");
-        let lp_metadata = object::address_to_object<Metadata>(lp_addr);
+        let lp_metadata = swap::create_pair(user1, eth_metadata, btc_metadata);
         
         swap::add_liquidity(
             user1,

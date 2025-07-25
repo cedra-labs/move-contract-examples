@@ -23,7 +23,9 @@ module simple_dex::swap {
         reserve_y: Object<FungibleStore>,
         mint_ref: fungible_asset::MintRef,
         burn_ref: fungible_asset::BurnRef,
-        extend_ref: ExtendRef
+        extend_ref: ExtendRef,
+        reserve_x_ref: ExtendRef,
+        reserve_y_ref: ExtendRef
     }
     
     /// Create a new trading pair
@@ -50,6 +52,9 @@ module simple_dex::swap {
         let reserve_x_constructor = &object::create_object(signer::address_of(lp_creator));
         let reserve_y_constructor = &object::create_object(signer::address_of(lp_creator));
         
+        let reserve_x_ref = object::generate_extend_ref(reserve_x_constructor);
+        let reserve_y_ref = object::generate_extend_ref(reserve_y_constructor);
+        
         move_to(
             &object::generate_signer(constructor_ref),
             TradingPair {
@@ -57,7 +62,9 @@ module simple_dex::swap {
                 reserve_y: fungible_asset::create_store(reserve_y_constructor, y_metadata),
                 mint_ref,
                 burn_ref,
-                extend_ref
+                extend_ref,
+                reserve_x_ref,
+                reserve_y_ref
             }
         );
         
@@ -84,16 +91,12 @@ module simple_dex::swap {
         let amount_out = math_amm::get_amount_out(amount_in, reserve_in, reserve_out);
         assert!(amount_out >= min_amount_out, ERROR_INSUFFICIENT_OUTPUT);
         
-        // Execute swap
-        primary_fungible_store::transfer(
-            user, 
-            x_metadata,
-            object::object_address(&pair.reserve_x),
-            amount_in
-        );
+        // Execute swap - withdraw from user and deposit to reserve
+        let asset_in = primary_fungible_store::withdraw(user, x_metadata, amount_in);
+        fungible_asset::deposit(pair.reserve_x, asset_in);
 
         let fa = fungible_asset::withdraw(
-            &object::generate_signer_for_extending(&pair.extend_ref),
+            &object::generate_signer_for_extending(&pair.reserve_y_ref),
             pair.reserve_y,
             amount_out
         );
@@ -135,10 +138,8 @@ module simple_dex::swap {
         };
         
         // Add tokens to pool and mint LP tokens
-        let x_store = primary_fungible_store::primary_store(signer::address_of(user), x_metadata);
-        let y_store = primary_fungible_store::primary_store(signer::address_of(user), y_metadata);
-        let asset_x = fungible_asset::withdraw(user, x_store, amount_x);
-        let asset_y = fungible_asset::withdraw(user, y_store, amount_y);
+        let asset_x = primary_fungible_store::withdraw(user, x_metadata, amount_x);
+        let asset_y = primary_fungible_store::withdraw(user, y_metadata, amount_y);
         
         fungible_asset::deposit(pair.reserve_x, asset_x);
         fungible_asset::deposit(pair.reserve_y, asset_y);
