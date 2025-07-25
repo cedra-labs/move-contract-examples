@@ -3,6 +3,7 @@
 module simple_dex::swap {
     use std::signer;
     use std::string;
+    use std::math64;
     use cedra_framework::fungible_asset::{Self, FungibleAsset, FungibleStore, Metadata};
     use cedra_framework::object::{Self, ExtendRef, Object};
     use cedra_framework::option;
@@ -26,8 +27,8 @@ module simple_dex::swap {
     }
     
     /// Create a new trading pair
-    public entry fun create_pair(lp_creator: &signer, x_metadata: Object<Metadata>, y_metadata: Object<Metadata>) { 
-        let constructor_ref = &object::create_sticky_object(@simple_dex);
+    public fun create_pair(lp_creator: &signer, x_metadata: Object<Metadata>, y_metadata: Object<Metadata>): Object<Metadata> { 
+        let constructor_ref = &object::create_sticky_object(signer::address_of(lp_creator));
         let maximum_supply = option::none(); // Unlimited supply for LPs
         primary_fungible_store::create_primary_store_enabled_fungible_asset(
             constructor_ref,
@@ -45,16 +46,22 @@ module simple_dex::swap {
 
         let lp_metadata = object::object_from_constructor_ref<Metadata>(constructor_ref);
         
+        // Create separate objects for each reserve
+        let reserve_x_constructor = &object::create_object(signer::address_of(lp_creator));
+        let reserve_y_constructor = &object::create_object(signer::address_of(lp_creator));
+        
         move_to(
             &object::generate_signer(constructor_ref),
             TradingPair {
-                reserve_x: fungible_asset::create_store(constructor_ref, x_metadata),
-                reserve_y: fungible_asset::create_store(constructor_ref, y_metadata),
+                reserve_x: fungible_asset::create_store(reserve_x_constructor, x_metadata),
+                reserve_y: fungible_asset::create_store(reserve_y_constructor, y_metadata),
                 mint_ref,
                 burn_ref,
                 extend_ref
             }
         );
+        
+        lp_metadata
     }
     
     /// Swap exact input for output
@@ -85,12 +92,12 @@ module simple_dex::swap {
             amount_in
         );
 
-        primary_fungible_store::transfer(
+        let fa = fungible_asset::withdraw(
             &object::generate_signer_for_extending(&pair.extend_ref),
-            y_metadata,
-            object::object_address(&pair.reserve_y),
+            pair.reserve_y,
             amount_out
         );
+        primary_fungible_store::deposit(signer::address_of(user), fa);
     }
     
     /// Add liquidity with proper ratio calculation
@@ -128,14 +135,28 @@ module simple_dex::swap {
         };
         
         // Add tokens to pool and mint LP tokens
-        let asset_x = fungible_asset::withdraw(user, x_metadata, amount_x);
-        let asset_y = fungible_asset::withdraw(user, y_metadata, amount_y);
+        let x_store = primary_fungible_store::primary_store(signer::address_of(user), x_metadata);
+        let y_store = primary_fungible_store::primary_store(signer::address_of(user), y_metadata);
+        let asset_x = fungible_asset::withdraw(user, x_store, amount_x);
+        let asset_y = fungible_asset::withdraw(user, y_store, amount_y);
         
         fungible_asset::deposit(pair.reserve_x, asset_x);
         fungible_asset::deposit(pair.reserve_y, asset_y);
         
-        // Simplified LP minting (in production, use proper calculation)
-        let lp_amount = std::math64::min(amount_x, amount_y);
+        // Calculate LP tokens to mint
+        let lp_amount = if (reserve_x == 0 && reserve_y == 0) {
+            // Initial liquidity: use sqrt of product
+            std::math64::sqrt(amount_x * amount_y)
+        } else {
+            // Get current LP supply
+            let lp_supply_opt = fungible_asset::supply(lp_metadata);
+            let lp_supply = option::extract(&mut lp_supply_opt);
+            // Mint proportional to the minimum ratio
+            std::math64::min(
+                ((amount_x as u128) * lp_supply / (reserve_x as u128) as u64),
+                ((amount_y as u128) * lp_supply / (reserve_y as u128) as u64)
+            )
+        };
         let lp_tokens = fungible_asset::mint(&pair.mint_ref, lp_amount);
         
         primary_fungible_store::deposit(signer::address_of(user), lp_tokens);
