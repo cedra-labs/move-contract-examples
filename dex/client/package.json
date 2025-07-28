@@ -5,12 +5,10 @@
   "type": "module",
   "scripts": {
     "start": "tsx src/index.ts",
-    "mock": "tsx src/mock-demo.ts",
-    "simple": "tsx src/simple-demo.ts",
     "build": "tsc"
   },
   "dependencies": {
-    "@cedra-labs/ts-sdk": "latest"
+    "@cedra-labs/ts-sdk": "^2.2.4"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
