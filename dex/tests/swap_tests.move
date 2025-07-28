@@ -3,8 +3,6 @@ module simple_dex::swap_tests {
     use simple_dex::swap;
     use simple_dex::test_utils;
     use cedra_framework::account;
-    use cedra_framework::fungible_asset::{Self, Metadata};
-    use cedra_framework::object::{Self, Object};
     use cedra_framework::primary_fungible_store;
     use std::signer;
 

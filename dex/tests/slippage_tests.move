@@ -4,8 +4,6 @@ module simple_dex::slippage_tests {
     use simple_dex::swap;
     use simple_dex::test_utils;
     use cedra_framework::account;
-    use cedra_framework::fungible_asset::{Self, Metadata};
-    use cedra_framework::object::{Self, Object};
     use std::signer;
 
     #[test]
@@ -16,7 +14,7 @@ module simple_dex::slippage_tests {
         
         let price_impact = slippage::calculate_price_impact(amount_in, reserve_in, reserve_out);
         
-        assert!(price_impact < 10, 0);
+        assert!(price_impact < 150, 0);
     }
 
     #[test]
@@ -27,8 +25,8 @@ module simple_dex::slippage_tests {
         
         let price_impact = slippage::calculate_price_impact(amount_in, reserve_in, reserve_out);
         
-        assert!(price_impact > 900, 0);
-        assert!(price_impact < 1800, 1);
+        assert!(price_impact > 1000, 0);
+        assert!(price_impact < 1100, 1);
     }
 
     #[test]

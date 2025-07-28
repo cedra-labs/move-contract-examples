@@ -1,7 +1,6 @@
 #[test_only]
 module simple_dex::math_amm_tests {
     use simple_dex::math_amm;
-    use std::error;
 
     #[test]
     fun test_get_amount_out_basic() {

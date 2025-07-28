@@ -1,9 +1,7 @@
 /// Multi-hop routing
 module simple_dex::multihop {
-    use cedra_framework::fungible_asset::{Self, FungibleAsset, FungibleStore, Metadata};
-    use cedra_framework::object::{Self, ExtendRef, Object};
-    use cedra_framework::option;
-    use cedra_framework::primary_fungible_store;
+    use cedra_framework::fungible_asset::Metadata;
+    use cedra_framework::object::Object;
     use simple_dex::math_amm;
     use simple_dex::swap;
     

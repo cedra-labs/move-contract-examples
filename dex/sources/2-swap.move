@@ -3,8 +3,7 @@
 module simple_dex::swap {
     use std::signer;
     use std::string;
-    use std::math64;
-    use cedra_framework::fungible_asset::{Self, FungibleAsset, FungibleStore, Metadata};
+    use cedra_framework::fungible_asset::{Self, FungibleStore, Metadata};
     use cedra_framework::object::{Self, ExtendRef, Object};
     use cedra_framework::option;
     use cedra_framework::primary_fungible_store;
@@ -77,7 +76,7 @@ module simple_dex::swap {
         lp_metadata: Object<Metadata>,
         // NOTE: for demo purposes to keep things simple
         x_metadata: Object<Metadata>,
-        y_metadata: Object<Metadata>,
+        _y_metadata: Object<Metadata>,
         amount_in: u64,
         min_amount_out: u64
     ) acquires TradingPair {
