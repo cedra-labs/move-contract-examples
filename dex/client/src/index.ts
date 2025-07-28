@@ -3,34 +3,31 @@ import {
   Cedra,
   CedraConfig,
   Network,
-  Ed25519PrivateKey,
-  InputViewFunctionData,
-  MoveValue,
 } from "@cedra-labs/ts-sdk";
 
-// Constants
+// ═══════════════════════════════════════════════════════════════════════════
+// DEX Example on Cedra - Educational Implementation
+// This example demonstrates how to interact with a DEX smart contract
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Configuration
 const NETWORK = Network.DEVNET;
 const NODE_URL = "https://testnet.cedra.dev/v1";
 const FAUCET_URL = "https://faucet-api.cedra.dev";
 
-// Module addresses - our deployed DEX
-const MODULE_ADDRESS = "0xfb2b31a794c110bf17092e39a63e72a88ecb4d6521fd6e05aeab1a15d5402154";
+// Your deployed DEX module address
+const MODULE_ADDRESS = "0xbeaeaff8da45012f8fff424eab43c39c5330cd8c1066cbe04542a91734468df8";
+
+// Module references for easy access
 const MODULES = {
-  math_amm: `${MODULE_ADDRESS}::math_amm`,
   swap: `${MODULE_ADDRESS}::swap`,
+  test_tokens: `${MODULE_ADDRESS}::test_tokens`,
   slippage: `${MODULE_ADDRESS}::slippage`,
   multihop: `${MODULE_ADDRESS}::multihop`,
-  test_tokens: `${MODULE_ADDRESS}::test_tokens`
+  math_amm: `${MODULE_ADDRESS}::math_amm`,
 };
 
-// Our test tokens - these are non-deletable and work with the DEX!
-const ASSET_TYPES = {
-  ETH: "TestETH", // Our test ETH token
-  BTC: "TestBTC", // Our test BTC token
-  CEDRA: "0x1::cedra_coin::CedraCoin" // Native CEDRA (not used in demo)
-};
-
-// Initialize SDK
+// Initialize Cedra SDK
 const config = new CedraConfig({
   network: NETWORK,
   fullnode: NODE_URL,
@@ -38,33 +35,112 @@ const config = new CedraConfig({
 });
 const cedra = new Cedra(config);
 
-// Helper functions
-async function fundAccount(account: Account, amount: number = 100_000_000): Promise<void> {
-  console.log(`💰 Funding account ${account.accountAddress.toString()}...`);
-  try {
-    await cedra.fundAccount({
-      accountAddress: account.accountAddress,
-      amount,
-    });
-    console.log("✅ Account funded successfully");
-  } catch (error) {
-    console.error("❌ Failed to fund account:", error);
+// ═══════════════════════════════════════════════════════════════════════════
+// Helper Functions
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Format token amounts for display (assumes 8 decimals)
+function formatAmount(amount: number, symbol: string = ""): string {
+  const formatted = (amount / 100_000_000).toFixed(4);
+  return symbol ? `${formatted} ${symbol}` : formatted;
+}
+
+// Display a separator line
+function separator(title?: string): void {
+  if (title) {
+    console.log(`\n${"═".repeat(70)}`);
+    console.log(`  ${title}`);
+    console.log(`${"═".repeat(70)}`);
+  } else {
+    console.log(`${"─".repeat(70)}`);
   }
 }
 
-async function mintTestAsset(
+// Display token balances in a nice format
+async function displayBalances(
+  account: string,
+  tokens: Array<{ symbol: string; metadata: string; decimals: number }>
+): Promise<void> {
+  console.log("\n💰 Token Balances:");
+  console.log("┌─────────┬──────────────────┐");
+  console.log("│ Token   │ Balance          │");
+  console.log("├─────────┼──────────────────┤");
+  
+  for (const token of tokens) {
+    const balance = await getTokenBalance(account, token.metadata);
+    const formatted = formatAmount(balance, token.symbol);
+    console.log(`│ ${token.symbol.padEnd(7)} │ ${formatted.padStart(16)} │`);
+  }
+  
+  console.log("└─────────┴──────────────────┘");
+}
+
+// Display pool information
+async function displayPoolInfo(lpToken: string): Promise<void> {
+  const [reserveX, reserveY] = await getReserves(lpToken);
+  const price = reserveX > 0 ? reserveY / reserveX : 0;
+  const tvl = reserveX + reserveY; // Simplified TVL calculation
+  
+  console.log("\n📊 Pool Information:");
+  console.log(`   • Reserve X: ${formatAmount(reserveX)}`);
+  console.log(`   • Reserve Y: ${formatAmount(reserveY)}`);
+  console.log(`   • Price (Y/X): ${price.toFixed(6)}`);
+  console.log(`   • TVL: ~${formatAmount(tvl)} (in base units)`);
+  console.log(`   • K constant: ${(reserveX * reserveY).toLocaleString()}`);
+}
+
+// Fund account with test tokens
+async function fundAccount(account: Account): Promise<void> {
+  console.log(`\n💳 Funding account ${account.accountAddress.toString().slice(0, 6)}...`);
+  await cedra.fundAccount({
+    accountAddress: account.accountAddress,
+    amount: 1_000_000_000, // 10 CEDRA
+  });
+  console.log("   ✓ Account funded with 10 CEDRA");
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Core DEX Functions
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Get token metadata address (for test tokens)
+async function getTokenMetadata(tokenType: "ETH" | "BTC" | "USDC"): Promise<string> {
+  const functionName = tokenType === "ETH" ? "get_eth_metadata" :
+                      tokenType === "BTC" ? "get_btc_metadata" :
+                      "get_usdc_metadata";
+  
+  const result = await cedra.view({
+    payload: {
+      function: `${MODULES.test_tokens}::${functionName}`,
+      typeArguments: [],
+      functionArguments: [],
+    }
+  });
+  
+  const metadata = result[0];
+  if (typeof metadata === 'object' && metadata !== null && 'inner' in metadata) {
+    const inner = metadata.inner as string;
+    return inner.startsWith('0x') ? inner : `0x${inner}`;
+  }
+  return metadata.toString();
+}
+
+// Mint test tokens to an account
+async function mintTestTokens(
   account: Account,
-  assetType: "ETH" | "BTC",
+  tokenType: "ETH" | "BTC" | "USDC",
   amount: number
 ): Promise<void> {
-  console.log(`🪙  Minting ${amount / 100_000_000} Test${assetType} to ${account.accountAddress.toString()}...`);
-
-  const mintFunction = assetType === "ETH" ? "mint_eth" : "mint_btc";
+  console.log(`\n🪙  Minting ${formatAmount(amount)} test${tokenType}...`);
+  
+  const functionName = tokenType === "ETH" ? "mint_eth" :
+                      tokenType === "BTC" ? "mint_btc" :
+                      "mint_usdc";
   
   const transaction = await cedra.transaction.build.simple({
     sender: account.accountAddress,
     data: {
-      function: `${MODULES.test_tokens}::${mintFunction}`,
+      function: `${MODULES.test_tokens}::${functionName}`,
       typeArguments: [],
       functionArguments: [amount],
     },
@@ -76,298 +152,182 @@ async function mintTestAsset(
   });
 
   await cedra.waitForTransaction({ transactionHash: pendingTxn.hash });
-  console.log(`✅ Minted ${amount / 100_000_000} Test${assetType}`);
+  console.log(`   ✓ Minted successfully (tx: ${pendingTxn.hash.slice(0, 10)}...)`);
 }
 
-async function getMetadataAddress(assetType: string): Promise<string> {
+// Get token balance
+async function getTokenBalance(
+  accountAddress: string,
+  tokenMetadata: string
+): Promise<number> {
   try {
-    if (assetType === ASSET_TYPES.CEDRA) {
-      return "0x1";
-    }
-
-    // Use our test tokens
-    let getMetadataFunction: string;
-    if (assetType === ASSET_TYPES.ETH || assetType === "TestETH") {
-      getMetadataFunction = "get_eth_metadata";
-    } else if (assetType === ASSET_TYPES.BTC || assetType === "TestBTC") {
-      getMetadataFunction = "get_btc_metadata";
-    } else {
-      throw new Error(`Unknown asset type: ${assetType}`);
-    }
-
-    const payload: InputViewFunctionData = {
-      function: `${MODULES.test_tokens}::${getMetadataFunction}`,
-      typeArguments: [],
-      functionArguments: [],
-    };
-    const result = await cedra.view({ payload });
-    
-    // The result should be an object address
-    if (result && result[0]) {
-      const metadata = result[0];
-      // Handle different response formats
-      if (typeof metadata === 'string') {
-        return metadata;
-      } else if (metadata.inner) {
-        return metadata.inner;
+    const result = await cedra.view({
+      payload: {
+        function: "0x1::primary_fungible_store::balance",
+        typeArguments: ["0x1::fungible_asset::Metadata"],
+        functionArguments: [accountAddress, tokenMetadata],
       }
-    }
-    
-    throw new Error(`Invalid metadata response for ${assetType}`);
+    });
+    return Number(result[0]);
   } catch (error) {
-    console.error(`Failed to get metadata for ${assetType}:`, error);
-    throw new Error(`Cannot get metadata address for ${assetType}. Please check the test_tokens contract.`);
-  }
-}
-
-async function getBalance(account: string, metadata: string): Promise<number> {
-  try {
-    const payload: InputViewFunctionData = {
-      function: `0x1::primary_fungible_store::balance`,
-      typeArguments: [],
-      functionArguments: [account, metadata],
-    };
-    const result = await cedra.view({ payload });
-    return Number(result[0] || 0);
-  } catch (error) {
-    // Fallback: try to get the store and then the balance
-    try {
-      const storePayload: InputViewFunctionData = {
-        function: `0x1::primary_fungible_store::primary_store`,
-        typeArguments: [],
-        functionArguments: [account, metadata],
-      };
-      const storeResult = await cedra.view({ payload: storePayload });
-      
-      if (storeResult && storeResult[0]) {
-        const store = await cedra.getAccountResource({
-          accountAddress: storeResult[0] as string,
-          resourceType: `0x1::fungible_asset::FungibleStore`,
-        });
-        return Number(store.balance || 0);
-      }
-    } catch {}
-    
     return 0;
   }
 }
 
-// DEX-specific functions
-
+// Create a new trading pair
 async function createTradingPair(
-  creator: Account,
+  account: Account,
   tokenX: string,
   tokenY: string
 ): Promise<string> {
-  console.log(`🔄 Creating trading pair for ${tokenX}/${tokenY}...`);
-
-  const xMetadata = await getMetadataAddress(tokenX);
-  const yMetadata = await getMetadataAddress(tokenY);
-
+  console.log("\n🔄 Creating trading pair...");
+  
   const transaction = await cedra.transaction.build.simple({
-    sender: creator.accountAddress,
+    sender: account.accountAddress,
     data: {
-      function: `${MODULES.swap}::create_pair`,
+      function: `${MODULES.swap}::create_pair_entry`,
       typeArguments: [],
-      functionArguments: [xMetadata, yMetadata],
+      functionArguments: [tokenX, tokenY],
     },
   });
 
   const pendingTxn = await cedra.signAndSubmitTransaction({
-    signer: creator,
+    signer: account,
     transaction,
   });
 
   const result = await cedra.waitForTransaction({ transactionHash: pendingTxn.hash });
-  console.log(`✅ Trading pair created! Tx: ${pendingTxn.hash}`);
   
-  // Extract LP token address from events
-  const events = result.events || [];
-  for (const event of events) {
-    if (event.type.includes("object::ObjectCore")) {
-      return event.guid.id.addr;
+  // Extract LP token address from state changes
+  let lpToken = "";
+  if ('changes' in result && Array.isArray(result.changes)) {
+    for (const change of result.changes) {
+      if (change.type === 'write_resource') {
+        const resourceType = change.data?.type || '';
+        if (resourceType.includes('::swap::TradingPair')) {
+          lpToken = change.address;
+          break;
+        }
+      }
     }
   }
-  return "";
+  
+  console.log(`   ✓ Trading pair created`);
+  console.log(`   • LP Token: ${lpToken}`);
+  console.log(`   • Transaction: ${pendingTxn.hash.slice(0, 10)}...`);
+  
+  return lpToken;
 }
 
+// Get pool reserves
 async function getReserves(lpMetadata: string): Promise<[number, number]> {
   try {
-    const [reserves] = await cedra.view({
+    const result = await cedra.view({
       payload: {
         function: `${MODULES.swap}::reserves`,
         typeArguments: [],
         functionArguments: [lpMetadata],
       }
     });
-    const [x, y] = reserves as [string, string];
-    return [Number(x), Number(y)];
+    
+    if (Array.isArray(result) && result.length === 2) {
+      return [Number(result[0]), Number(result[1])];
+    }
+    return [0, 0];
   } catch (error) {
-    console.error("Failed to get reserves:", error);
     return [0, 0];
   }
 }
 
+// Add liquidity to a pool
 async function addLiquidity(
-  provider: Account,
-  lpMetadata: string,
+  account: Account,
+  lpToken: string,
   tokenX: string,
   tokenY: string,
-  amountXDesired: number,
-  amountYDesired: number,
-  amountXMin: number,
-  amountYMin: number
+  amountX: number,
+  amountY: number,
+  minAmountX?: number,
+  minAmountY?: number
 ): Promise<void> {
-  console.log(`💧 Adding liquidity to ${tokenX}/${tokenY} pair...`);
-
-  const xMetadata = await getMetadataAddress(tokenX);
-  const yMetadata = await getMetadataAddress(tokenY);
-
+  console.log(`\n💧 Adding liquidity: ${formatAmount(amountX)} + ${formatAmount(amountY)}...`);
+  
+  // If min amounts not specified, use 95% of desired (5% slippage tolerance)
+  const actualMinX = minAmountX ?? Math.floor(amountX * 0.95);
+  const actualMinY = minAmountY ?? Math.floor(amountY * 0.95);
+  
   const transaction = await cedra.transaction.build.simple({
-    sender: provider.accountAddress,
+    sender: account.accountAddress,
     data: {
       function: `${MODULES.swap}::add_liquidity`,
       typeArguments: [],
       functionArguments: [
-        lpMetadata,
-        xMetadata,
-        yMetadata,
-        amountXDesired,
-        amountYDesired,
-        amountXMin,
-        amountYMin
+        lpToken, 
+        tokenX, 
+        tokenY, 
+        amountX, 
+        amountY, 
+        actualMinX,
+        actualMinY
       ],
     },
   });
 
   const pendingTxn = await cedra.signAndSubmitTransaction({
-    signer: provider,
+    signer: account,
     transaction,
   });
 
   await cedra.waitForTransaction({ transactionHash: pendingTxn.hash });
-  console.log(`✅ Liquidity added successfully!`);
+  
+  const lpBalance = await getTokenBalance(account.accountAddress.toString(), lpToken);
+  console.log(`   ✓ Liquidity added successfully`);
+  console.log(`   • LP tokens received: ${formatAmount(lpBalance)}`);
+  console.log(`   • Transaction: ${pendingTxn.hash.slice(0, 10)}...`);
 }
 
-async function swap(
-  user: Account,
-  lpMetadata: string,
+// Execute a token swap
+async function executeSwap(
+  account: Account,
+  lpToken: string,
   tokenIn: string,
   tokenOut: string,
   amountIn: number,
-  minAmountOut: number
-): Promise<void> {
-  console.log(`🔄 Swapping ${amountIn / 100_000_000} ${tokenIn} for ${tokenOut}...`);
-
-  const inMetadata = await getMetadataAddress(tokenIn);
-  const outMetadata = await getMetadataAddress(tokenOut);
-
+  minAmountOut: number = 0
+): Promise<number> {
+  console.log(`\n🔄 Swapping ${formatAmount(amountIn)} tokens...`);
+  
+  // Get initial balance to calculate actual output
+  const initialOutBalance = await getTokenBalance(account.accountAddress.toString(), tokenOut);
+  
   const transaction = await cedra.transaction.build.simple({
-    sender: user.accountAddress,
+    sender: account.accountAddress,
     data: {
       function: `${MODULES.swap}::swap_exact_input`,
       typeArguments: [],
-      functionArguments: [
-        lpMetadata,
-        inMetadata,
-        outMetadata,
-        amountIn,
-        minAmountOut
-      ],
+      functionArguments: [lpToken, tokenIn, tokenOut, amountIn, minAmountOut],
     },
   });
 
   const pendingTxn = await cedra.signAndSubmitTransaction({
-    signer: user,
+    signer: account,
     transaction,
   });
 
   await cedra.waitForTransaction({ transactionHash: pendingTxn.hash });
-  console.log(`✅ Swap completed successfully!`);
+  
+  const finalOutBalance = await getTokenBalance(account.accountAddress.toString(), tokenOut);
+  const actualOutput = finalOutBalance - initialOutBalance;
+  
+  console.log(`   ✓ Swap completed`);
+  console.log(`   • Amount out: ${formatAmount(actualOutput)}`);
+  console.log(`   • Transaction: ${pendingTxn.hash.slice(0, 10)}...`);
+  
+  return actualOutput;
 }
 
-async function safeSwap(
-  user: Account,
-  lpMetadata: string,
-  tokenIn: string,
-  tokenOut: string,
-  amountIn: number,
-  minAmountOut: number,
-  maxSlippageBps: number
-): Promise<void> {
-  console.log(`🛡️  Safe swapping ${amountIn / 100_000_000} ${tokenIn} for ${tokenOut} with ${maxSlippageBps / 100}% max slippage...`);
-
-  const inMetadata = await getMetadataAddress(tokenIn);
-  const outMetadata = await getMetadataAddress(tokenOut);
-
-  const transaction = await cedra.transaction.build.simple({
-    sender: user.accountAddress,
-    data: {
-      function: `${MODULES.slippage}::safe_swap`,
-      typeArguments: [],
-      functionArguments: [
-        lpMetadata,
-        inMetadata,
-        outMetadata,
-        amountIn,
-        minAmountOut,
-        maxSlippageBps
-      ],
-    },
-  });
-
-  const pendingTxn = await cedra.signAndSubmitTransaction({
-    signer: user,
-    transaction,
-  });
-
-  await cedra.waitForTransaction({ transactionHash: pendingTxn.hash });
-  console.log(`✅ Safe swap completed successfully!`);
-}
-
-async function multihopSwap(
-  user: Account,
-  lpMetadata1: string,
-  lpMetadata2: string,
-  tokenX: string,
-  tokenY: string,
-  tokenZ: string,
-  amountIn: number,
-  minAmountOut: number
-): Promise<void> {
-  console.log(`🔀 Multihop swap: ${amountIn / 100_000_000} ${tokenX} → ${tokenY} → ${tokenZ}...`);
-
-  const xMetadata = await getMetadataAddress(tokenX);
-  const yMetadata = await getMetadataAddress(tokenY);
-  const zMetadata = await getMetadataAddress(tokenZ);
-
-  const transaction = await cedra.transaction.build.simple({
-    sender: user.accountAddress,
-    data: {
-      function: `${MODULES.multihop}::swap_exact_input_multihop`,
-      typeArguments: [],
-      functionArguments: [
-        lpMetadata1,
-        lpMetadata2,
-        xMetadata,
-        yMetadata,
-        zMetadata,
-        amountIn,
-        minAmountOut
-      ],
-    },
-  });
-
-  const pendingTxn = await cedra.signAndSubmitTransaction({
-    signer: user,
-    transaction,
-  });
-
-  await cedra.waitForTransaction({ transactionHash: pendingTxn.hash });
-  console.log(`✅ Multihop swap completed successfully!`);
-}
-
-async function getAmountOut(
+// Calculate expected output using AMM formula
+async function calculateSwapOutput(
   amountIn: number,
   reserveIn: number,
   reserveOut: number
@@ -382,351 +342,332 @@ async function getAmountOut(
     });
     return Number(amountOut);
   } catch (error) {
-    console.error("Failed to calculate amount out:", error);
     return 0;
   }
 }
 
-async function calculatePriceImpact(
-  lpMetadata: string,
-  amountIn: number
-): Promise<number> {
-  try {
-    const [reserveIn, reserveOut] = await getReserves(lpMetadata);
-    const [impact] = await cedra.view({
-      payload: {
-        function: `${MODULES.slippage}::calculate_price_impact`,
-        typeArguments: [],
-        functionArguments: [amountIn, reserveIn, reserveOut],
-      }
-    });
-    return Number(impact);
-  } catch (error) {
-    console.error("Failed to calculate price impact:", error);
-    return 0;
-  }
-}
+// ═══════════════════════════════════════════════════════════════════════════
+// Example Scenarios
+// ═══════════════════════════════════════════════════════════════════════════
 
-// Helper function to format numbers
-function formatAmount(amount: number, decimals: number = 8): string {
-  return (amount / Math.pow(10, decimals)).toFixed(4);
-}
-
-// Helper function to print section separator
-function printSection(title: string) {
-  console.log("\n" + "=".repeat(60));
-  console.log(`🔹 ${title}`);
-  console.log("=".repeat(60) + "\n");
-}
-
-// Helper function to print subsection
-function printSubsection(title: string) {
-  console.log(`\n► ${title}`);
-  console.log("─".repeat(40));
-}
-
-// Helper function to display pool state
-async function displayPoolState(lpMetadata: string, label: string) {
-  const [ethReserve, btcReserve] = await getReserves(lpMetadata);
-  const k = ethReserve * btcReserve;
-  const price = btcReserve > 0 ? ethReserve / btcReserve : 0;
+async function exampleSetupAndTokens() {
+  separator("🏗️  Example 1: Setting Up Your DEX Environment");
   
-  console.log(`\n📊 ${label}:`);
-  console.log(`├─ ETH Reserve: ${formatAmount(ethReserve)} ETH`);
-  console.log(`├─ BTC Reserve: ${formatAmount(btcReserve)} BTC`);
-  console.log(`├─ K Constant: ${formatAmount(k)}`);
-  console.log(`└─ Price: 1 BTC = ${price.toFixed(4)} ETH`);
-}
-
-// Helper function to display balances
-async function displayBalances(
-  accounts: { name: string; address: string }[],
-  ethMetadata: string,
-  btcMetadata: string,
-  label: string
-) {
-  console.log(`\n💰 ${label}:`);
-  console.log("┌────────────┬──────────────┬──────────────┐");
-  console.log("│ Account    │ ETH Balance  │ BTC Balance  │");
-  console.log("├────────────┼──────────────┼──────────────┤");
+  console.log("\n💡 Key Learning: Every DEX needs test tokens for development");
+  console.log("   In production, you'll use real tokens with proper metadata.\n");
   
-  for (const account of accounts) {
-    const ethBalance = await getBalance(account.address, ethMetadata);
-    const btcBalance = await getBalance(account.address, btcMetadata);
-    console.log(
-      `│ ${account.name.padEnd(10)} │ ${formatAmount(ethBalance).padStart(12)} │ ${formatAmount(btcBalance).padStart(12)} │`
-    );
-  }
-  console.log("└────────────┴──────────────┴──────────────┘");
-}
-
-// Main demo function
-async function main() {
-  console.log("\n🚀 DEX Showcase - Demonstrating AMM Functionality");
-  console.log("━".repeat(60));
-  console.log("This demo showcases a complete DEX implementation including:");
-  console.log("• Constant Product AMM (x*y=k)");
-  console.log("• Liquidity Provision");
-  console.log("• Token Swaps with 0.3% Fee");
-  console.log("• Slippage Protection");
-  console.log("• Price Impact Calculations");
-  console.log("━".repeat(60));
-
-  printSection("SETUP PHASE");
-
-  // Generate accounts
-  const deployer = Account.generate();
+  // Create accounts
   const alice = Account.generate();
   const bob = Account.generate();
-
-  console.log("📝 Generated Accounts:");
-  console.log(`├─ Deployer: ${deployer.accountAddress}`);
-  console.log(`├─ Alice: ${alice.accountAddress}`);
-  console.log(`└─ Bob: ${bob.accountAddress}`);
-
+  
+  console.log("📝 Creating test accounts:");
+  console.log(`   • Alice: ${alice.accountAddress.toString()}`);
+  console.log(`   • Bob: ${bob.accountAddress.toString()}`);
+  
   // Fund accounts
-  printSubsection("Funding Accounts");
-  await fundAccount(deployer, 200_000_000);
-  await fundAccount(alice, 200_000_000);
-  await fundAccount(bob, 200_000_000);
-
-  // Wait for funding
-  await new Promise(resolve => setTimeout(resolve, 2000));
-
-  // Mint test assets
-  printSubsection("Minting Test Assets");
-  console.log("Creating test tokens for demonstration...");
-  await mintTestAsset(alice, "ETH", 1000_000_000); // 10 ETH
-  await mintTestAsset(alice, "BTC", 500_000_000);  // 5 BTC
-  await mintTestAsset(bob, "ETH", 500_000_000);    // 5 ETH
-  await mintTestAsset(bob, "BTC", 200_000_000);    // 2 BTC
-
-  // Wait for minting to complete
-  console.log("\nWaiting for blockchain confirmation...");
-  await new Promise(resolve => setTimeout(resolve, 3000));
-
-  // Get metadata addresses
-  console.log("\n► Getting Asset Metadata");
-  console.log("────────────────────────────────────────");
-  const ethMetadata = await getMetadataAddress(ASSET_TYPES.ETH);
-  const btcMetadata = await getMetadataAddress(ASSET_TYPES.BTC);
-  console.log(`ETH Metadata: ${ethMetadata}`);
-  console.log(`BTC Metadata: ${btcMetadata}`);
-
-  // Display initial balances
-  await displayBalances(
-    [
-      { name: "Alice", address: alice.accountAddress.toString() },
-      { name: "Bob", address: bob.accountAddress.toString() }
-    ],
-    ethMetadata,
-    btcMetadata,
-    "Initial Token Balances"
-  );
-
-  // Create trading pair
-  printSection("LIQUIDITY POOL CREATION");
+  await fundAccount(alice);
+  await fundAccount(bob);
   
-  console.log("Creating ETH/BTC trading pair...");
-  console.log(`Using token addresses:`);
-  console.log(`├─ ETH: ${ASSET_TYPES.ETH}`);
-  console.log(`└─ BTC: ${ASSET_TYPES.BTC}`);
+  // Get token metadata addresses
+  console.log("\n🔍 Getting token metadata addresses:");
+  const ethMetadata = await getTokenMetadata("ETH");
+  const btcMetadata = await getTokenMetadata("BTC");
+  const usdcMetadata = await getTokenMetadata("USDC");
   
-  const lpTokenAddress = await createTradingPair(deployer, ASSET_TYPES.ETH, ASSET_TYPES.BTC);
-  console.log(`✅ LP Token created at: ${lpTokenAddress}`);
-
-  // Show initial (empty) pool state
-  await displayPoolState(lpTokenAddress, "Initial Pool State (Empty)");
-
-  // Add initial liquidity
-  printSubsection("Adding Initial Liquidity");
+  console.log(`   • ETH: ${ethMetadata}`);
+  console.log(`   • BTC: ${btcMetadata}`);
+  console.log(`   • USDC: ${usdcMetadata}`);
   
-  console.log("\n📐 AMM Formula: x * y = k");
-  console.log("When adding liquidity to empty pool:");
-  console.log("• LP tokens minted = sqrt(amount_x * amount_y)");
-  console.log("• Initial price is set by the ratio of tokens\n");
+  // Mint tokens
+  await mintTestTokens(alice, "ETH", 1000_000_000); // 10 ETH
+  await mintTestTokens(alice, "BTC", 500_000_000);  // 5 BTC
+  await mintTestTokens(alice, "USDC", 10000_000_000); // 100 USDC
   
-  const initialEthAmount = 500_000_000;  // 5 ETH
-  const initialBtcAmount = 250_000_000;  // 2.5 BTC
+  await mintTestTokens(bob, "ETH", 500_000_000);   // 5 ETH
+  await mintTestTokens(bob, "BTC", 250_000_000);   // 2.5 BTC
+  await mintTestTokens(bob, "USDC", 5000_000_000); // 50 USDC
   
-  console.log(`Alice adds: ${formatAmount(initialEthAmount)} ETH + ${formatAmount(initialBtcAmount)} BTC`);
+  // Display balances
+  const tokens = [
+    { symbol: "ETH", metadata: ethMetadata, decimals: 8 },
+    { symbol: "BTC", metadata: btcMetadata, decimals: 8 },
+    { symbol: "USDC", metadata: usdcMetadata, decimals: 8 }
+  ];
   
-  await addLiquidity(
-    alice,
-    lpTokenAddress,
-    ASSET_TYPES.ETH,
-    ASSET_TYPES.BTC,
-    initialEthAmount,
-    initialBtcAmount,
-    450_000_000,  // Min 4.5 ETH
-    225_000_000   // Min 2.25 BTC
-  );
-
-  // Display pool state after initial liquidity
-  await displayPoolState(lpTokenAddress, "Pool State After Initial Liquidity");
+  console.log("\n👤 Alice's tokens:");
+  await displayBalances(alice.accountAddress.toString(), tokens);
   
-  // Calculate initial K constant
-  const [ethReserve, btcReserve] = await getReserves(lpTokenAddress);
-  const initialK = ethReserve * btcReserve;
-  console.log(`\n🔢 Initial K constant: ${formatAmount(initialK)}`);
-  console.log(`📈 Initial price: 1 ETH = ${(btcReserve / ethReserve).toFixed(4)} BTC`);
-
-  // Perform basic swap
-  printSection("TOKEN SWAPPING");
+  console.log("\n👤 Bob's tokens:");
+  await displayBalances(bob.accountAddress.toString(), tokens);
   
-  printSubsection("Basic Swap Demonstration");
-  
-  console.log("\n📐 Swap Formula (with 0.3% fee):");
-  console.log("• amount_in_with_fee = amount_in * 997 / 1000");
-  console.log("• amount_out = (amount_in_with_fee * reserve_out) / (reserve_in + amount_in_with_fee)");
-  console.log("• New K remains constant after swap\n");
-  
-  const swapAmount = 100_000_000; // 1 ETH
-  console.log(`Bob wants to swap: ${formatAmount(swapAmount)} ETH for BTC`);
-  
-  // Calculate expected output
-  const expectedOut = await getAmountOut(swapAmount, ethReserve, btcReserve);
-  const effectivePrice = swapAmount / expectedOut;
-  const spotPrice = ethReserve / btcReserve;
-  
-  console.log(`\n💱 Swap Calculation:`);
-  console.log(`├─ Input: ${formatAmount(swapAmount)} ETH`);
-  console.log(`├─ Fee (0.3%): ${formatAmount(swapAmount * 0.003)} ETH`);
-  console.log(`├─ Expected Output: ${formatAmount(expectedOut)} BTC`);
-  console.log(`├─ Effective Price: 1 BTC = ${effectivePrice.toFixed(4)} ETH`);
-  console.log(`└─ Spot Price: 1 BTC = ${spotPrice.toFixed(4)} ETH`);
-
-  // Show balances before swap
-  console.log("\n📊 Bob's Balance Before Swap:");
-  const bobEthBefore = await getBalance(bob.accountAddress.toString(), ethMetadata);
-  const bobBtcBefore = await getBalance(bob.accountAddress.toString(), btcMetadata);
-  console.log(`├─ ETH: ${formatAmount(bobEthBefore)}`);
-  console.log(`└─ BTC: ${formatAmount(bobBtcBefore)}`);
-
-  // Execute swap
-  await swap(
-    bob,
-    lpTokenAddress,
-    ASSET_TYPES.ETH,
-    ASSET_TYPES.BTC,
-    swapAmount,
-    (expectedOut * 95) / 100  // 5% slippage tolerance
-  );
-
-  // Show balances after swap
-  console.log("\n📊 Bob's Balance After Swap:");
-  const bobEthAfter = await getBalance(bob.accountAddress.toString(), ethMetadata);
-  const bobBtcAfter = await getBalance(bob.accountAddress.toString(), btcMetadata);
-  console.log(`├─ ETH: ${formatAmount(bobEthAfter)} (${formatAmount(bobEthAfter - bobEthBefore)})`);
-  console.log(`└─ BTC: ${formatAmount(bobBtcAfter)} (+${formatAmount(bobBtcAfter - bobBtcBefore)})`);
-
-  // Display pool state after swap
-  await displayPoolState(lpTokenAddress, "Pool State After Swap");
-  
-  // Verify K constant
-  const [newEthReserve, newBtcReserve] = await getReserves(lpTokenAddress);
-  const newK = newEthReserve * newBtcReserve;
-  console.log(`\n🔢 K constant verification:`);
-  console.log(`├─ K before: ${formatAmount(initialK)}`);
-  console.log(`├─ K after: ${formatAmount(newK)}`);
-  console.log(`└─ K preserved: ${Math.abs(newK - initialK) < 1000 ? "✅ Yes" : "❌ No"}`);
-
-  // Price impact demonstration
-  printSubsection("Price Impact Analysis");
-  
-  console.log("\n📈 Price impact increases with swap size:");
-  const swapSizes = [50_000_000, 100_000_000, 200_000_000, 300_000_000]; // 0.5, 1, 2, 3 ETH
-  
-  for (const size of swapSizes) {
-    const priceImpact = await calculatePriceImpact(lpTokenAddress, size);
-    const output = await getAmountOut(size, newEthReserve, newBtcReserve);
-    const avgPrice = size / output;
-    console.log(`├─ ${formatAmount(size).padEnd(6)} ETH → Impact: ${(priceImpact / 100).toFixed(2).padStart(6)}% | Avg Price: ${avgPrice.toFixed(4)}`);
-  }
-  console.log(`└─ Larger swaps face higher slippage due to limited liquidity`);
-
-  // Safe swap with slippage protection
-  printSection("SLIPPAGE PROTECTION");
-  
-  printSubsection("Safe Swap with Maximum Slippage");
-  
-  console.log("\n🛡️ Slippage Protection:");
-  console.log("• Protects traders from sandwich attacks");
-  console.log("• Ensures minimum output is received");
-  console.log("• Transaction reverts if slippage exceeds limit\n");
-  
-  const [currentEthReserve, currentBtcReserve] = await getReserves(lpTokenAddress);
-  const safeSwapAmount = 50_000_000; // 0.5 ETH
-  const safeExpectedOut = await getAmountOut(safeSwapAmount, currentEthReserve, currentBtcReserve);
-  const maxSlippageBps = 200; // 2%
-  
-  console.log(`Safe Swap Parameters:`);
-  console.log(`├─ Input Amount: ${formatAmount(safeSwapAmount)} ETH`);
-  console.log(`├─ Expected Output: ${formatAmount(safeExpectedOut)} BTC`);
-  console.log(`├─ Max Slippage: ${maxSlippageBps / 100}%`);
-  console.log(`├─ Min Acceptable Output: ${formatAmount((safeExpectedOut * (10000 - maxSlippageBps)) / 10000)} BTC`);
-  console.log(`└─ Actual Min Set: ${formatAmount((safeExpectedOut * 95) / 100)} BTC (5% tolerance)`);
-
-  await safeSwap(
-    bob,
-    lpTokenAddress,
-    ASSET_TYPES.ETH,
-    ASSET_TYPES.BTC,
-    safeSwapAmount,
-    (safeExpectedOut * 95) / 100,  // Min output
-    maxSlippageBps
-  );
-
-  // Display final state
-  printSection("FINAL STATE SUMMARY");
-
-  // Final balances
-  await displayBalances(
-    [
-      { name: "Alice", address: alice.accountAddress.toString() },
-      { name: "Bob", address: bob.accountAddress.toString() }
-    ],
-    ethMetadata,
-    btcMetadata,
-    "Final Token Balances"
-  );
-
-  // Final pool state
-  await displayPoolState(lpTokenAddress, "Final Pool State");
-
-  // Trading summary
-  printSubsection("Trading Summary");
-  
-  const [finalEthReserve, finalBtcReserve] = await getReserves(lpTokenAddress);
-  const finalK = finalEthReserve * finalBtcReserve;
-  
-  console.log("\n📊 Pool Evolution:");
-  console.log(`├─ Initial Reserves: ${formatAmount(ethReserve)} ETH / ${formatAmount(btcReserve)} BTC`);
-  console.log(`├─ Final Reserves: ${formatAmount(finalEthReserve)} ETH / ${formatAmount(finalBtcReserve)} BTC`);
-  console.log(`├─ ETH Change: +${formatAmount(finalEthReserve - ethReserve)}`);
-  console.log(`├─ BTC Change: ${formatAmount(finalBtcReserve - btcReserve)}`);
-  console.log(`└─ K Constant: ${formatAmount(initialK)} → ${formatAmount(finalK)}`);
-  
-  console.log("\n💱 Price Evolution:");
-  console.log(`├─ Initial Price: 1 ETH = ${(btcReserve / ethReserve).toFixed(4)} BTC`);
-  console.log(`├─ Final Price: 1 ETH = ${(finalBtcReserve / finalEthReserve).toFixed(4)} BTC`);
-  console.log(`└─ Price Change: ${(((finalBtcReserve / finalEthReserve) - (btcReserve / ethReserve)) / (btcReserve / ethReserve) * 100).toFixed(2)}%`);
-
-  // Bob's trading performance
-  const bobInitialEth = 500_000_000;
-  const bobInitialBtc = 200_000_000;
-  const bobFinalEth = await getBalance(bob.accountAddress.toString(), ethMetadata);
-  const bobFinalBtc = await getBalance(bob.accountAddress.toString(), btcMetadata);
-  
-  console.log("\n📈 Bob's Trading Performance:");
-  console.log(`├─ ETH: ${formatAmount(bobInitialEth)} → ${formatAmount(bobFinalEth)} (${formatAmount(bobFinalEth - bobInitialEth)})`);
-  console.log(`├─ BTC: ${formatAmount(bobInitialBtc)} → ${formatAmount(bobFinalBtc)} (+${formatAmount(bobFinalBtc - bobInitialBtc)})`);
-  console.log(`└─ Total Swapped: ${formatAmount(bobInitialEth - bobFinalEth)} ETH for ${formatAmount(bobFinalBtc - bobInitialBtc)} BTC`);
-
-  console.log("\n" + "=".repeat(60));
-  console.log("✅ DEX Showcase Complete!");
-  console.log("=".repeat(60));
+  return { alice, bob, ethMetadata, btcMetadata, usdcMetadata, tokens };
 }
 
-// Run the demo
-main().catch(console.error);
+async function exampleCreatePair(alice: Account, tokenX: string, tokenY: string) {
+  separator("🏗️  Example 2: Creating a Trading Pair");
+  
+  console.log("\n💡 Key Learning: Trading pairs are the foundation of DEX");
+  console.log("   Each pair has its own LP token that represents pool ownership.\n");
+  
+  const lpToken = await createTradingPair(alice, tokenX, tokenY);
+  
+  // Show initial state
+  await displayPoolInfo(lpToken);
+  
+  console.log("\n📝 Note: New pairs start with 0 reserves until liquidity is added");
+  
+  return lpToken;
+}
+
+async function exampleFirstLiquidity(
+  alice: Account, 
+  lpToken: string, 
+  tokenX: string, 
+  tokenY: string,
+  amountX: number,
+  amountY: number
+) {
+  separator("💧 Example 3: Adding Your First Liquidity");
+  
+  console.log("\n💡 Key Learning: First liquidity provider sets the initial price");
+  console.log("   LP tokens = sqrt(amountX * amountY)\n");
+  
+  // Show the calculation
+  const expectedLP = Math.floor(Math.sqrt(amountX * amountY));
+  console.log("📐 LP Token Calculation:");
+  console.log(`   sqrt(${formatAmount(amountX)} * ${formatAmount(amountY)}) = ${formatAmount(expectedLP)} LP`);
+  
+  await addLiquidity(alice, lpToken, tokenX, tokenY, amountX, amountY);
+  await displayPoolInfo(lpToken);
+}
+
+async function exampleAddMoreLiquidity(
+  bob: Account,
+  lpToken: string,
+  tokenX: string,
+  tokenY: string,
+  desiredX: number,
+  desiredY: number
+) {
+  separator("💧 Example 4: Adding Liquidity to Existing Pool");
+  
+  console.log("\n💡 Key Learning: Subsequent liquidity must match pool ratio");
+  console.log("   The AMM will only take the amounts that maintain the ratio.\n");
+  
+  const [reserveX, reserveY] = await getReserves(lpToken);
+  const currentRatio = reserveY / reserveX;
+  
+  console.log("📊 Current Pool State:");
+  console.log(`   • Ratio: 1 X = ${currentRatio.toFixed(4)} Y`);
+  
+  const optimalY = Math.floor((desiredX * reserveY) / reserveX);
+  const optimalX = Math.floor((desiredY * reserveX) / reserveY);
+  
+  console.log(`\n📐 Optimal amounts calculation:`);
+  console.log(`   • For ${formatAmount(desiredX)} X, optimal Y = ${formatAmount(optimalY)}`);
+  console.log(`   • For ${formatAmount(desiredY)} Y, optimal X = ${formatAmount(optimalX)}`);
+  
+  // Determine which token will be the limiting factor
+  let actualX, actualY, minX, minY;
+  if (desiredY > optimalY) {
+    // Y is excess, X is limiting
+    actualX = desiredX;
+    actualY = optimalY;
+    minX = desiredX;
+    minY = optimalY;
+    console.log(`   • Using X as base: ${formatAmount(actualX)} X + ${formatAmount(actualY)} Y`);
+    console.log(`   • Excess Y returned: ${formatAmount(desiredY - actualY)}`);
+  } else {
+    // X is excess, Y is limiting
+    actualX = optimalX;
+    actualY = desiredY;
+    minX = optimalX;
+    minY = desiredY;
+    console.log(`   • Using Y as base: ${formatAmount(actualX)} X + ${formatAmount(actualY)} Y`);
+    console.log(`   • Excess X returned: ${formatAmount(desiredX - actualX)}`);
+  }
+  
+  await addLiquidity(bob, lpToken, tokenX, tokenY, desiredX, desiredY, minX, minY);
+  await displayPoolInfo(lpToken);
+}
+
+async function exampleBasicSwap(
+  bob: Account,
+  lpToken: string,
+  tokenIn: string,
+  tokenOut: string,
+  amountIn: number,
+  tokenInSymbol: string,
+  tokenOutSymbol: string
+) {
+  separator("🔄 Example 5: Executing Token Swaps");
+  
+  console.log("\n💡 Key Learning: AMM uses constant product formula (x * y = k)");
+  console.log("   Each swap includes a 0.3% fee that stays in the pool.\n");
+  
+  const [reserveIn, reserveOut] = await getReserves(lpToken);
+  const expectedOut = await calculateSwapOutput(amountIn, reserveIn, reserveOut);
+  
+  console.log("📐 Swap Calculation:");
+  console.log(`   • Input: ${formatAmount(amountIn, tokenInSymbol)}`);
+  console.log(`   • Expected output: ${formatAmount(expectedOut, tokenOutSymbol)}`);
+  console.log(`   • Price impact: ${((amountIn / reserveIn) * 100).toFixed(2)}%`);
+  
+  const actualOut = await executeSwap(bob, lpToken, tokenIn, tokenOut, amountIn);
+  
+  console.log("\n📊 Swap Results:");
+  console.log(`   • Expected: ${formatAmount(expectedOut, tokenOutSymbol)}`);
+  console.log(`   • Actual: ${formatAmount(actualOut, tokenOutSymbol)}`);
+  console.log(`   • Effective price: ${(amountIn / actualOut).toFixed(6)} ${tokenInSymbol}/${tokenOutSymbol}`);
+  
+  await displayPoolInfo(lpToken);
+}
+
+async function examplePriceImpact(
+  lpToken: string
+) {
+  separator("📈 Example 6: Understanding Price Impact");
+  
+  console.log("\n💡 Key Learning: Larger trades have exponentially higher price impact");
+  console.log("   Always consider slippage protection for large trades.\n");
+  
+  const [reserveIn, reserveOut] = await getReserves(lpToken);
+  
+  // Calculate impact for different trade sizes
+  const tradeSizes = [
+    { percent: 0.1, amount: Math.floor(reserveIn * 0.001) },   // 0.1% of pool
+    { percent: 1, amount: Math.floor(reserveIn * 0.01) },      // 1% of pool
+    { percent: 10, amount: Math.floor(reserveIn * 0.1) },      // 10% of pool
+  ];
+  
+  console.log("📊 Price Impact Analysis:");
+  console.log("┌──────────┬─────────────┬─────────────┬─────────────┐");
+  console.log("│ % Pool   │ Input       │ Output      │ Impact      │");
+  console.log("├──────────┼─────────────┼─────────────┼─────────────┤");
+  
+  for (const trade of tradeSizes) {
+    const output = await calculateSwapOutput(trade.amount, reserveIn, reserveOut);
+    const spotPrice = reserveOut / reserveIn;
+    const executionPrice = output / trade.amount;
+    const priceImpact = ((spotPrice - executionPrice) / spotPrice) * 100;
+    
+    console.log(
+      `│ ${trade.percent.toString().padEnd(8)} │ ${formatAmount(trade.amount).padEnd(11)} │ ${formatAmount(output).padEnd(11)} │ ${priceImpact.toFixed(2).padStart(10)}% │`
+    );
+  }
+  
+  console.log("└──────────┴─────────────┴─────────────┴─────────────┘");
+  
+  console.log("\n⚠️  Notice how price impact increases non-linearly!");
+}
+
+async function exampleErrorHandling(
+  bob: Account,
+  lpToken: string,
+  tokenIn: string,
+  tokenOut: string
+) {
+  separator("⚠️  Example 7: Common Errors and How to Handle Them");
+  
+  console.log("\n💡 Key Learning: Always validate inputs and handle errors gracefully\n");
+  
+  // Example 1: Zero amount swap
+  console.log("❌ Attempting to swap 0 tokens:");
+  try {
+    await executeSwap(bob, lpToken, tokenIn, tokenOut, 0);
+  } catch (error: any) {
+    console.log(`   Error caught: ${error.message || error}`);
+    console.log("   ✓ This is expected - DEX rejects zero amounts");
+  }
+  
+  // Example 2: Insufficient balance
+  console.log("\n❌ Attempting to swap more than balance:");
+  const balance = await getTokenBalance(bob.accountAddress.toString(), tokenIn);
+  try {
+    await executeSwap(bob, lpToken, tokenIn, tokenOut, balance * 2);
+  } catch (error: any) {
+    console.log(`   Error caught: Insufficient balance`);
+    console.log("   ✓ This is expected - Can't swap more than you have");
+  }
+  
+  // Example 3: Slippage protection
+  console.log("\n✅ Using slippage protection:");
+  const swapAmount = Math.floor(balance * 0.1); // 10% of balance
+  const [reserveIn, reserveOut] = await getReserves(lpToken);
+  const expectedOut = await calculateSwapOutput(swapAmount, reserveIn, reserveOut);
+  const minAcceptable = Math.floor(expectedOut * 0.97); // 3% slippage tolerance
+  
+  console.log(`   • Expected output: ${formatAmount(expectedOut)}`);
+  console.log(`   • Minimum acceptable: ${formatAmount(minAcceptable)} (3% slippage)`);
+  console.log("   • This protects against front-running and price changes");
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Main Demo Runner
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function runDexExample() {
+  console.log("╔═══════════════════════════════════════════════════════════════════════╗");
+  console.log("║                    DEX Example on Cedra Network                       ║");
+  console.log("║                 Learn by Building Your Own DEX!                       ║");
+  console.log("╚═══════════════════════════════════════════════════════════════════════╝");
+  
+  console.log(`\n📍 Module Address: ${MODULE_ADDRESS}`);
+  console.log(`🌐 Network: ${NETWORK}`);
+  console.log(`🔗 Node URL: ${NODE_URL}\n`);
+  
+  try {
+    // Run all examples in sequence
+    const { alice, bob, ethMetadata, btcMetadata, tokens } = await exampleSetupAndTokens();
+    
+    const lpETHBTC = await exampleCreatePair(alice, ethMetadata, btcMetadata);
+    
+    await exampleFirstLiquidity(alice, lpETHBTC, ethMetadata, btcMetadata, 
+      100_000_000,  // 1 ETH
+      50_000_000    // 0.5 BTC (implying 1 ETH = 0.5 BTC initial price)
+    );
+    
+    await exampleAddMoreLiquidity(bob, lpETHBTC, ethMetadata, btcMetadata,
+      50_000_000,   // 0.5 ETH desired
+      30_000_000    // 0.3 BTC desired (more than needed)
+    );
+    
+    await exampleBasicSwap(bob, lpETHBTC, ethMetadata, btcMetadata, 
+      10_000_000,   // 0.1 ETH
+      "ETH", "BTC"
+    );
+    
+    await examplePriceImpact(lpETHBTC);
+    
+    await exampleErrorHandling(bob, lpETHBTC, ethMetadata, btcMetadata);
+    
+    // Final state
+    separator("🎉 Final State");
+    
+    console.log("\n📊 Final Pool State:");
+    await displayPoolInfo(lpETHBTC);
+    
+    console.log("\n👤 Final Balances - Alice:");
+    await displayBalances(alice.accountAddress.toString(), tokens);
+    
+    console.log("\n👤 Final Balances - Bob:");
+    await displayBalances(bob.accountAddress.toString(), tokens);
+    
+    console.log("\n✅ Congratulations! You've learned the basics of DEX development!");
+    console.log("\n📚 Next Steps:");
+    console.log("   1. Try modifying swap amounts and observe price impacts");
+    console.log("   2. Implement multi-hop swaps for better routing");
+    console.log("   3. Add advanced features like limit orders or yield farming");
+    console.log("   4. Deploy your own DEX with custom tokenomics!");
+    
+  } catch (error) {
+    console.error("\n❌ Example failed:", error);
+    console.log("\n🔧 Troubleshooting:");
+    console.log("   1. Ensure the DEX contract is deployed at the correct address");
+    console.log("   2. Check network connectivity to Cedra testnet");
+    console.log("   3. Verify test tokens module is properly initialized");
+  }
+}
+
+// Run the example
+runDexExample().catch(console.error);

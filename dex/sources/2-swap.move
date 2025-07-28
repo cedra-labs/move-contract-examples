@@ -180,4 +180,27 @@ module simple_dex::swap {
         let lp_addr = object::object_address(&lp_metadata);
         exists<TradingPair>(lp_addr)
     }
+
+    /// Entry function wrapper for create_pair
+    public entry fun create_pair_entry(lp_creator: &signer, x_metadata: Object<Metadata>, y_metadata: Object<Metadata>) {
+        create_pair(lp_creator, x_metadata, y_metadata);
+    }
+    
+    /// Get trading pair details including token addresses and reserves
+    #[view]
+    public fun get_pair_info(
+        lp_metadata: Object<Metadata>
+    ): (bool, u64, u64) acquires TradingPair {
+        let lp_addr = object::object_address(&lp_metadata);
+        
+        if (!exists<TradingPair>(lp_addr)) {
+            return (false, 0, 0)
+        };
+        
+        let pair = borrow_global<TradingPair>(lp_addr);
+        let reserve_x = fungible_asset::balance(pair.reserve_x);
+        let reserve_y = fungible_asset::balance(pair.reserve_y);
+        
+        (true, reserve_x, reserve_y)
+    }
 }

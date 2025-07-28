@@ -1,115 +1,118 @@
 # DEX Client Example
 
-A basic TypeScript client that demonstrates all core functionality of the DEX implementation.
+This TypeScript client demonstrates how to interact with a decentralized exchange (DEX) smart contract on the Cedra network.
+
+## Overview
+
+The client showcases all essential DEX operations:
+- Creating trading pairs
+- Adding liquidity (initial and subsequent)
+- Executing token swaps
+- Understanding price impact
+- Handling common errors
 
 ## Prerequisites
 
-- Node.js (v18 or higher)
-- npm or pnpm
-- Deployed DEX contracts on Cedra testnet
+- Node.js (v16 or higher)
+- npm or pnpm package manager
+- Access to Cedra testnet
 
-## Setup
+## Installation
 
-1. Install dependencies:
 ```bash
+# Install dependencies
 npm install
 # or
 pnpm install
 ```
 
-2. Deploy the DEX contracts first (from the parent directory):
-```bash
-cd ..
-cedra move compile --named-addresses math_amm=default,swap=default,slippage=default,multihop=default
-cedra move publish --named-addresses math_amm=default,swap=default,slippage=default,multihop=default
+## Configuration
+
+The client connects to Cedra testnet by default. Key configuration in `src/index.ts`:
+
+```typescript
+const MODULE_ADDRESS = "0xbeaeaff8da45012f8fff424eab43c39c5330cd8c1066cbe04542a91734468df8";
+const NETWORK = Network.DEVNET;
+const NODE_URL = "https://testnet.cedra.dev/v1";
 ```
 
-3. Update the module addresses in `src/index.ts` with your deployed addresses:
-```typescript
-const MODULE_ADDRESSES = {
-  math_amm: "0x123...", // Your deployed address
-  swap: "0x123...",     // Your deployed address
-  slippage: "0x123...", // Your deployed address
-  multihop: "0x123..."  // Your deployed address
-};
-```
+To use your own deployed DEX contract, update the `MODULE_ADDRESS`.
 
 ## Running the Example
 
 ```bash
 npm start
-# or
-pnpm start
 ```
 
-## What the Client Does
+This will run through all DEX examples sequentially:
+1. Setting up accounts and minting test tokens
+2. Creating an ETH/BTC trading pair
+3. Adding initial liquidity (demonstrates LP token calculation)
+4. Adding more liquidity (shows ratio maintenance)
+5. Executing swaps with price impact
+6. Demonstrating common errors and protections
 
-The client demonstrates a complete DEX workflow using Cedra's built-in test assets:
+## Example Output
 
-1. **Account Setup**: Creates and funds test accounts
-2. **Asset Minting**: Uses Cedra's test minter to mint ETH, BTC, and USDC
-3. **DEX Setup**: Creates trading pairs (ETH/BTC and BTC/USDC)
-4. **Liquidity Provision**: Adds initial liquidity to both pools
-5. **Token Swaps**: Performs various swap operations:
-   - Simple swap (ETH → BTC)
-   - Safe swap with slippage protection
-   - Multi-hop swap (ETH → BTC → USDC)
-6. **Balance Tracking**: Shows balances before and after operations
+The client provides clear, educational output:
+- Token balances displayed in tables
+- Step-by-step transaction confirmations
+- Mathematical calculations shown (AMM formulas)
+- Price impact analysis
+- Error handling demonstrations
 
-## Features Demonstrated
+## Customization
 
-- ✅ AMM constant product formula (x*y=k)
-- ✅ 0.3% trading fee
-- ✅ Liquidity provision with LP tokens
-- ✅ Token swapping with real test assets (ETH, BTC, USDC)
-- ✅ Slippage protection (max 5% default)
-- ✅ Price impact protection (max 3%)
-- ✅ Multi-hop routing for better prices
-- ✅ Integration with Cedra's test asset minter
+To build your own DEX client:
 
-## Security Note
+1. **Deploy your DEX contract** and update `MODULE_ADDRESS`
+2. **Modify token types** in the `getTokenMetadata()` function
+3. **Adjust trading pairs** in the example scenarios
+4. **Add custom features** like:
+   - Multi-hop swaps
+   - Slippage protection
+   - Liquidity mining rewards
+   - Advanced order types
 
-⚠️ **WARNING**: This example uses generated private keys for educational purposes only. Never use private keys directly in production applications. Always use secure wallet connections instead.
+## Key Functions
 
-## Output Example
+- `createTradingPair()` - Creates a new liquidity pool
+- `addLiquidity()` - Adds tokens to a pool
+- `executeSwap()` - Swaps tokens using the AMM
+- `calculateSwapOutput()` - Predicts swap output using AMM math
+- `displayPoolInfo()` - Shows pool reserves and metrics
 
+## Understanding the AMM
+
+This DEX uses the constant product formula:
 ```
-🚀 Starting DEX Example...
-
-📝 Creating accounts...
-Deployer: 0x123...
-Liquidity Provider: 0x456...
-Trader: 0x789...
-
-💰 Funding accounts...
-✅ Accounts funded successfully
-
-🪙 Minting test assets...
-✅ Minted 10 ETH
-✅ Minted 5 BTC
-✅ Minted 50,000 USDC
-
-...and more
+x * y = k
 ```
+
+Where:
+- `x` = reserve of token X
+- `y` = reserve of token Y
+- `k` = constant product
+
+Each swap includes a 0.3% fee that stays in the pool.
 
 ## Troubleshooting
 
-- **Module not found**: Make sure you've deployed the contracts and updated the addresses
-- **Insufficient balance**: The faucet might be rate-limited, wait a bit and try again
-- **Transaction failed**: Check that your account has enough gas fees
-- **Minting failed**: Ensure you're using the correct Cedra testnet and the minter contract is available
+If you encounter errors:
+1. Ensure the DEX contract is deployed at the correct address
+2. Check network connectivity to Cedra testnet
+3. Verify test tokens module is initialized
+4. Make sure you have enough CEDRA for gas fees
 
-## Alternative: Manual Asset Minting
+## Next Steps
 
-If you prefer to mint assets manually using the Cedra CLI:
+1. Study the contract source code in `../../sources/`
+2. Modify swap amounts to observe price impacts
+3. Implement additional features like limit orders
+4. Deploy your own customized DEX!
 
-```bash
-# Mint test ETH (1 ETH):
-cedra move run --function-id 0x45d869282e5605c700c8f153c80770b5dc9af2beadc3a35aa1c03aabff25f41c::minter::mint_ETH --args u64:100000000 --assume-yes
+## Resources
 
-# Mint test BTC (1 BTC):
-cedra move run --function-id 0x45d869282e5605c700c8f153c80770b5dc9af2beadc3a35aa1c03aabff25f41c::minter::mint_BTC --args u64:100000000 --assume-yes
-
-# Mint test USDC (1000 USDC):
-cedra move run --function-id 0x45d869282e5605c700c8f153c80770b5dc9af2beadc3a35aa1c03aabff25f41c::minter::mint_USDC --args u64:100000000000 --assume-yes
-```
+- [Cedra Documentation](https://docs.cedra.dev)
+- [Move Language Reference](https://move-language.github.io/move/)
+- DEX Contract: See `../../sources/` directory
