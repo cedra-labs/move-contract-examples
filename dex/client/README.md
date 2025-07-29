@@ -31,7 +31,7 @@ pnpm install
 The client connects to Cedra testnet by default. Key configuration in `src/index.ts`:
 
 ```typescript
-const MODULE_ADDRESS = "0xbeaeaff8da45012f8fff424eab43c39c5330cd8c1066cbe04542a91734468df8";
+const MODULE_ADDRESS = "_";
 const NETWORK = Network.DEVNET;
 const NODE_URL = "https://testnet.cedra.dev/v1";
 ```
@@ -113,6 +113,5 @@ If you encounter errors:
 
 ## Resources
 
-- [Cedra Documentation](https://docs.cedra.dev)
+- [Cedra Documentation](https://docs.cedra.network/)
 - [Move Language Reference](https://move-language.github.io/move/)
-- DEX Contract: See `../../sources/` directory
