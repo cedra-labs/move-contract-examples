@@ -10,6 +10,6 @@ CedraFungible = "_"
 CedraFungible = "0xcafe"
 
 [dependencies]
-AptosFramework = { git = "https://github.com/aptos-labs/aptos-framework.git", subdir = "aptos-framework", rev = "mainnet" }
+CedraFramework = { git = "https://github.com/cedra-labs/cedra-framework.git", subdir = "cedra-framework", rev = "main" }
 
 [dev-dependencies]

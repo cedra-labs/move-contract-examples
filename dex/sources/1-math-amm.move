@@ -8,6 +8,7 @@ module simple_dex::math_amm {
     /// Calculate output amount using constant product formula
     /// Formula: x * y = k (constant)
     /// When we add dx to x, we get dy from y such that (x + dx) * (y - dy) = k
+    #[view]
     public fun get_amount_out(
         amount_in: u64,
         reserve_in: u64,
@@ -25,6 +26,7 @@ module simple_dex::math_amm {
     }
     
     /// Calculate required input for desired output
+    #[view]
     public fun get_amount_in(
         amount_out: u64,
         reserve_in: u64,
@@ -41,6 +43,7 @@ module simple_dex::math_amm {
     }
     
     /// Calculate optimal amounts for adding liquidity
+    #[view]
     public fun quote(
         amount_a: u64,
         reserve_a: u64,

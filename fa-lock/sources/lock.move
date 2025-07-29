@@ -4,17 +4,17 @@
 /// 1. There is a `LockupRef`, which is stored in the account being paid to.  It keeps track of the Lockup object.
 /// 2. There is a `Lockup` object, which keeps track of all escrow objects currently running
 ///
-/// To test `aptos move test --move-2 --dev`
+/// To test `cedra move test --move-2 --dev`
 module lock_deployer::lock {
 
     use std::option::{Self, Option};
     use std::signer;
-    use aptos_std::big_ordered_map::{Self, BigOrderedMap};
-    use aptos_framework::dispatchable_fungible_asset;
-    use aptos_framework::fungible_asset::{Self, Metadata, FungibleStore};
-    use aptos_framework::object::{Self, Object, ExtendRef, DeleteRef};
-    use aptos_framework::primary_fungible_store;
-    use aptos_framework::timestamp;
+    use cedra_std::big_ordered_map::{Self, BigOrderedMap};
+    use cedra_framework::dispatchable_fungible_asset;
+    use cedra_framework::fungible_asset::{Self, Metadata, FungibleStore};
+    use cedra_framework::object::{Self, Object, ExtendRef, DeleteRef};
+    use cedra_framework::primary_fungible_store;
+    use cedra_framework::timestamp;
 
     /// The lookup to object for escrow in an easily addressible spot
     ///
@@ -24,7 +24,7 @@ module lock_deployer::lock {
         lockup_address: address,
     }
 
-    #[resource_group_member(group = aptos_framework::object::ObjectGroup)]
+    #[resource_group_member(group = cedra_framework::object::ObjectGroup)]
     /// A single lockup, which has the same lockup period for all of them
     ///
     /// These are stored on objects, which map to the appropriate escrows
@@ -52,7 +52,7 @@ module lock_deployer::lock {
         }
     }
 
-    #[resource_group_member(group = aptos_framework::object::ObjectGroup)]
+    #[resource_group_member(group = cedra_framework::object::ObjectGroup)]
     /// An escrow object for a single user and a single FA
     enum Escrow has key {
         Simple {
@@ -493,6 +493,11 @@ module lock_deployer::lock {
 
     #[test_only]
     const TWO_HOURS_SECS: u64 = 2 * 60 * 60;
+
+    #[test_only]
+    public fun init_lockup_for_test(caller: &signer): Object<Lockup> {
+        init_lockup(caller)
+    }
 
     #[test_only]
     fun setup_for_test(
