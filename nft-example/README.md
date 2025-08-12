@@ -120,10 +120,10 @@ The Move contract demonstrates Cedra development patterns with the following fun
 
 ### Cedra Development Features
 
-- **Modern Digital Asset Standard**: Demonstrates Cedra's use of `aptos_token_objects` for better ecosystem integration
+- **Modern Digital Asset Standard**: Demonstrates Cedra's use of `cedra_token_objects` for better ecosystem integration
 - **Automatic Collection Creation**: Collection is created when the module is deployed
 - **Owner-Only Minting**: Only the deployer can mint new NFTs
-- **Object-Based Architecture**: Uses Aptos Object model for NFTs
+- **Object-Based Architecture**: Uses Cedra Object model for NFTs
 - **Indexer Integration**: Client demonstrates Cedra's integration with indexer APIs
 - **Session-Based Naming**: Prevents object collision errors with unique token names
 

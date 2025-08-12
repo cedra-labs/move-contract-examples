@@ -9,7 +9,7 @@ module CedraNFTV2::CedraCollectionV2 {
     const ENOT_CREATOR: u64 = 1;
 
     const COLLECTION_NAME: vector<u8> = b"Cedra NFT Collection V2";
-    const COLLECTION_DESCRIPTION: vector<u8> = b"A modern collection of unique digital assets using Aptos Digital Asset standard";
+    const COLLECTION_DESCRIPTION: vector<u8> = b"A modern collection of unique digital assets using Cedra Digital Asset standard";
     const COLLECTION_URI: vector<u8> = b"https://metadata.cedra.dev/collection-v2.json";
 
     /// Initialize and create the collection when module is published.

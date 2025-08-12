@@ -13,7 +13,7 @@ build/
 
 # Move contract build artifacts
 contract/build/
-contract/.aptos/
+contract/.cedra/
 
 # Environment variables
 .env
@@ -55,8 +55,8 @@ coverage/
 tmp/
 temp/
 
-# Aptos CLI
-.aptos/
+# Cedra CLI
+.cedra/
 
 # Private keys (security)
 *.key
