@@ -1,4 +1,3 @@
-```markdown
 # Contributing to Cedra Move Contract Examples
 
 Thank you for your interest in contributing! This guide will help you get started quickly.
@@ -159,4 +158,3 @@ Contributors with merged PRs receive:
 - Mysterious project participation
 
 **Ready to contribute?** Pick an issue labeled `good-first-issue` and start coding! 🚀
-```
