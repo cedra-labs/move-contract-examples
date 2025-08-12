@@ -27,13 +27,13 @@ This will create a new account or use an existing one. Follow the prompts to set
 2. Compile the contract:
 
 ```bash
-cedra move compile
+cedra move compile --named-addresses CedraFungible=default
 ```
 
 3. Publish the contract:
 
 ```bash
-cedra move publish
+cedra move publish --named-addresses CedraFungible=default
 ```
 
 4. Take note of the account address where the contract is deployed, you'll need it for the client:
