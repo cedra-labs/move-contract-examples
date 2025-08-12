@@ -45,7 +45,7 @@ Collection of Move examples for the Cedra ecosystem. Each subproject focuses on 
 
 ## Getting Started
 
-Most contracts can be compiled, tested, and published with the Cedra CLI:
+Contracts can be compiled, tested, and published with the Cedra CLI:
 
 ```bash
 # inside a project folder (e.g., dex/)
@@ -55,7 +55,3 @@ cedra move publish --named-addresses my_addr=default
 ```
 
 Refer to each subproject’s README for exact commands and configuration.
-
-## License
-
-MIT
