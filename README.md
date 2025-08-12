@@ -1,11 +1,9 @@
 # Cedra Move Contract Examples
 
-Collection of production-grade Move examples for the Cedra ecosystem. Each subproject focuses on a specific on-chain pattern (DEX, fungible assets, NFTs, fee splitting, referrals, and more), complete with Move modules, tests, and optional TypeScript clients.
+Collection of Move examples for the Cedra ecosystem. Each subproject focuses on a specific on-chain pattern (DEX, fungible assets, NFTs, fee splitting, referrals, and more), complete with Move modules, tests, and optional TypeScript clients.
 
-## Documentation
 
 - Full Cedra docs: [docs.cedra.network](https://docs.cedra.network/)
-- FA end-to-end guide (matches `fa-example`): [Fungible Asset (FA) End-to-End Guide](https://docs.cedra.network/guides/first-fa)
 
 ## Projects
 
