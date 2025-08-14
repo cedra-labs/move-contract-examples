@@ -28,7 +28,7 @@ pnpm install
 
 ## Configuration
 
-The client connects to Cedra testnet by default. Key configuration in `src/index.ts`:
+The client connects to Cedra testnet by default. Key configuration in `src/config.ts`:
 
 ```typescript
 const MODULE_ADDRESS = "_";

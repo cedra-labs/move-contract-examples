@@ -1,6 +1,6 @@
 import { Account } from "@cedra-labs/ts-sdk";
-import { NETWORK, MODULE_ADDRESS, NODE_URL } from "./config";
-import { TOKENS, TOKEN_DECIMALS, MAX_SLIPPAGE_PERCENT } from "./constants";
+import { NETWORK, MODULE_ADDRESS, NODE_URL } from "../src/config.js";
+import { TOKENS, TOKEN_DECIMALS, MAX_SLIPPAGE_PERCENT } from "../src/constants.js";
 import {
   separator,
   formatAmount,
@@ -15,7 +15,7 @@ import {
   addLiquidity,
   executeSwap,
   calculateSwapOutput
-} from "./dex";
+} from "../src/dex.js";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Example Scenarios
