@@ -5,14 +5,14 @@ This is the code for the CEDRA "Your First Transaction" tutorial. Learn how to c
 ## Prerequisites
 
 - Node.js v16 or higher
-- npm or yarn
+- npm
 
 ## Quick Start
 
 1. Clone this repository:
 ```bash
-git clone <repository-url>
-cd cedra-first-transaction
+git clone https://github.com/cedra-labs/move-contract-examples.git
+cd move-contract-examples/first-tx
 ```
 
 2. Install dependencies:
