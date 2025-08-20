@@ -68,9 +68,9 @@ module CedraNFTV2::CedraCollectionV2 {
         object::transfer(from, object, to);
     }
 
-    /// Get collection owner/creator
-    /// @notice You can use object::owner directly, that function for demo purpose only.
     #[view]
+    /// Get collection owner/creator.
+    /// @notice You can use object::owner directly, that function for demo purpose only.
     public fun get_collection_owner(creator_address: address): address {
         let collection_name = string::utf8(COLLECTION_NAME);
         let collection_address = collection::create_collection_address(&creator_address, &collection_name);
@@ -78,16 +78,16 @@ module CedraNFTV2::CedraCollectionV2 {
         object::owner(collection_object)
     }
 
-    /// Check if collection exists
     #[view]
+    /// Check if collection exists.
     public fun collection_exists(creator_address: address): bool {
         let collection_name = string::utf8(COLLECTION_NAME);
         let collection_address = collection::create_collection_address(&creator_address, &collection_name);
         object::object_exists<collection::Collection>(collection_address)
     }
 
-    /// Get collection data
     #[view]
+    /// Get collection data.
     public fun get_collection_data(creator_address: address): (String, String, String) {
         if (collection_exists(creator_address)) {
             let collection_name = string::utf8(COLLECTION_NAME);
