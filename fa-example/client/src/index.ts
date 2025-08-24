@@ -3,7 +3,7 @@ import { Account, AccountAddress, Cedra, CedraConfig, Network, Ed25519PrivateKey
 // Constants
 const NETWORK = Network.DEVNET;
 const MODULE_ADDRESS = "_";
-const MODULE_NAME = "CedraAsset";
+const MODULE_NAME = "ShakaSign";
 const MODULE_FULL_PATH = `${MODULE_ADDRESS}::${MODULE_NAME}`;
 
 // Cedra network configuration
@@ -40,9 +40,9 @@ const checkBalance = async (cedra: Cedra, name: string, address: AccountAddress)
         functionArguments: []
       }
     });
-    
+
     const metadataAddress = (metadataResult[0] as { inner: string }).inner;
-    
+
     // Actually use primary_fungible_store::balance
     const [balanceStr] = await cedra.view<[string]>({
       payload: {
@@ -51,9 +51,9 @@ const checkBalance = async (cedra: Cedra, name: string, address: AccountAddress)
         functionArguments: [address.toString(), metadataAddress]
       }
     });
-    
+
     const amount = parseInt(balanceStr, 10);
-    console.log(`${name}'s CedraAsset balance is: ${amount}`);
+    console.log(`${name}'s ShakaSign balance is: ${amount}`);
     return amount;
   } catch (error) {
     console.error(`Error getting balance for ${name}:`, error);
@@ -64,7 +64,7 @@ const checkBalance = async (cedra: Cedra, name: string, address: AccountAddress)
  * Main demo flow
  */
 const example = async () => {
-  console.log("Starting CedraAsset demo");
+  console.log("Starting ShakaSign demo");
   console.log(`Using module: ${MODULE_FULL_PATH}`);
 
   // Setup
@@ -76,13 +76,13 @@ const example = async () => {
   const privateKey = new Ed25519PrivateKey(ADMIN_PRIVATE_KEY);
   const admin = Account.fromPrivateKey({ privateKey });
   const user = Account.generate();
-  
+
   console.log("Admin Address: ", admin.accountAddress.toString());
   console.log("New User Address: ", user.accountAddress.toString());
-  
+
   // Fund & check initial state
   await fundAccount(cedra, user.accountAddress);
-  console.log("Checking initial CedraAsset balances...");
+  console.log("Checking initial ShakaSign balances...");
   await checkBalance(cedra, "Admin", admin.accountAddress);
   await checkBalance(cedra, "New User", user.accountAddress);
 
@@ -91,50 +91,50 @@ const example = async () => {
     console.log("\nMinting tokens to new user...");
     const mintTxn = await cedra.transaction.build.simple({
       sender: admin.accountAddress,
-      data: { 
+      data: {
         function: `${MODULE_ADDRESS}::${MODULE_NAME}::mint`,
-        functionArguments: [user.accountAddress, TRANSFER_AMOUNT] 
+        functionArguments: [user.accountAddress, TRANSFER_AMOUNT]
       }
     });
-    
+
     console.log("Mint transaction built successfully, signing with admin account...");
     const mintRes = await cedra.signAndSubmitTransaction({ signer: admin, transaction: mintTxn });
     console.log("Mint transaction submitted: ", mintRes.hash);
-    
+
     console.log("Waiting for mint transaction to be confirmed...");
     await cedra.waitForTransaction({ transactionHash: mintRes.hash });
     console.log("Mint transaction confirmed!");
-    
+
     // Check state after mint
     console.log("\nChecking balances after mint...");
     await checkBalance(cedra, "Admin", admin.accountAddress);
     await checkBalance(cedra, "New User", user.accountAddress);
-    
+
     // Step 2: Transfer tokens back
     console.log("\nTransferring tokens from user back to admin...");
     const transferTxn = await cedra.transaction.build.simple({
       sender: user.accountAddress,
-      data: { 
+      data: {
         function: `${MODULE_ADDRESS}::${MODULE_NAME}::transfer`,
-        functionArguments: [admin.accountAddress, RETURN_AMOUNT] 
+        functionArguments: [admin.accountAddress, RETURN_AMOUNT]
       }
     });
-    
+
     console.log("Transfer transaction built successfully, signing with user account...");
     const transferRes = await cedra.signAndSubmitTransaction({ signer: user, transaction: transferTxn });
     console.log("Transfer transaction submitted: ", transferRes.hash);
-    
+
     console.log("Waiting for transfer transaction to be confirmed...");
     await cedra.waitForTransaction({ transactionHash: transferRes.hash });
     console.log("Transfer transaction confirmed!");
-    
+
     // Check final state
     console.log("\nChecking final balances...");
     await checkBalance(cedra, "Admin", admin.accountAddress);
     await checkBalance(cedra, "New User", user.accountAddress);
-    
+
     console.log("\nFull flow completed successfully!");
-    
+
   } catch (error) {
     console.error("Error during operation:", error);
     console.log("This could be because:");

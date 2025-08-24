@@ -1,5 +1,5 @@
-module CedraFungible::CedraAsset {
-    use cedra_framework::fungible_asset::{Self, MintRef, TransferRef, Metadata, FungibleAsset};
+module CedraFungible::ShakaSign {
+    use cedra_framework::fungible_asset::{Self, MintRef, TransferRef, Metadata};
     use cedra_framework::object::{Self, Object};
     use cedra_framework::primary_fungible_store;
     use std::error;
@@ -10,15 +10,15 @@ module CedraFungible::CedraAsset {
     /// Only fungible asset metadata owner can make changes.
     const ENOT_OWNER: u64 = 1;
 
-    const ASSET_SYMBOL: vector<u8> = b"CEDRA";
-    const ASSET_NAME: vector<u8> = b"CedraAsset";
+    const ASSET_SYMBOL: vector<u8> = b"SHAKA";
+    const ASSET_NAME: vector<u8> = b"ShakaSign";
 
     #[resource_group_member(group = cedra_framework::object::ObjectGroup)]
     /// Hold refs to control the minting, transfer of fungible assets.
     struct ManagedFungibleAsset has key {
         mint_ref: MintRef,
         transfer_ref: TransferRef,
-        admin: address,
+        admin: address
     }
 
     /// Initialize metadata object and store the refs.
@@ -30,8 +30,12 @@ module CedraFungible::CedraAsset {
             utf8(ASSET_NAME),
             utf8(ASSET_SYMBOL),
             8,
-            utf8(b"https://metadata.cedra.dev/cedraasset.json"),
-            utf8(b"http://example.com"),
+            utf8(
+                b"https://sapphire-electoral-perch-200.mypinata.cloud/ipfs/bafkreiajoaez5xe4bay6kz7v2fji7mthx4lh4b5zzydmnkulchvem5fmde"
+            ),
+            utf8(
+                b"https://fr.m.wikipedia.org/wiki/Shaka_(signe)"
+            )
         );
 
         // Create mint/transfer refs to allow creator to manage the fungible asset.
@@ -40,10 +44,10 @@ module CedraFungible::CedraAsset {
         let metadata_object_signer = object::generate_signer(constructor_ref);
         move_to(
             &metadata_object_signer,
-            ManagedFungibleAsset { 
-                mint_ref, 
+            ManagedFungibleAsset {
+                mint_ref,
                 transfer_ref,
-                admin: signer::address_of(admin),
+                admin: signer::address_of(admin)
             }
         );
     }
@@ -61,7 +65,9 @@ module CedraFungible::CedraAsset {
         let managed_fungible_asset = authorized_borrow_refs(admin, asset);
         let to_wallet = primary_fungible_store::ensure_primary_store_exists(to, asset);
         let fa = fungible_asset::mint(&managed_fungible_asset.mint_ref, amount);
-        fungible_asset::deposit_with_ref(&managed_fungible_asset.transfer_ref, to_wallet, fa);
+        fungible_asset::deposit_with_ref(
+            &managed_fungible_asset.transfer_ref, to_wallet, fa
+        );
     }
 
     /// Transfer tokens from one account to another
@@ -74,11 +80,14 @@ module CedraFungible::CedraAsset {
     /// Borrow the immutable reference of the refs of `metadata`.
     /// This validates that the signer is the admin.
     inline fun authorized_borrow_refs(
-        owner: &signer,
-        asset: Object<Metadata>,
+        owner: &signer, asset: Object<Metadata>
     ): &ManagedFungibleAsset acquires ManagedFungibleAsset {
         let refs = borrow_global<ManagedFungibleAsset>(object::object_address(&asset));
-        assert!(refs.admin == signer::address_of(owner), error::permission_denied(ENOT_OWNER));
+        assert!(
+            refs.admin == signer::address_of(owner),
+            error::permission_denied(ENOT_OWNER)
+        );
         refs
     }
 }
+
