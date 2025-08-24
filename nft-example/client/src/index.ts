@@ -194,7 +194,7 @@ const demo = async (): Promise<void> => {
     await mintNFT(
       cedra,
       deployer,
-      user1.accountAddress,
+      user2.accountAddress,
       nftName2,
       "Second NFT in the collection", 
       "https://metadata.cedra.dev/v2/genesis-2.json"
