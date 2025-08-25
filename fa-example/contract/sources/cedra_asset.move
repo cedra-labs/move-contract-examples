@@ -1,5 +1,5 @@
 module CedraFungible::CedraAsset {
-    use cedra_framework::fungible_asset::{Self, MintRef, TransferRef, Metadata, FungibleAsset};
+    use cedra_framework::fungible_asset::{Self, MintRef, TransferRef, Metadata};
     use cedra_framework::object::{Self, Object};
     use cedra_framework::primary_fungible_store;
     use std::error;
