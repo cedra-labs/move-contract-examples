@@ -2,6 +2,7 @@
 
 To ensure fairness and quality, all participants must follow the guidelines below:
 
+- All tasks in our [Github](https://github.com/cedra-labs/docs/issues) with special `Builders Forge` label
 - All code and documentation must be in English
 - No copy-paste — all work must be original
 - One GitHub account per participant
