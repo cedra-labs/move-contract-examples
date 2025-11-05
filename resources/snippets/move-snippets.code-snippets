@@ -143,7 +143,7 @@
   "Event Emit Pattern": {
     "prefix": "event-emit",
     "body": [
-      "use aptos_framework::event;",
+      "use cedra_framework::event;",
       "",
       "/// ${1:Event description}",
       "#[event]",
@@ -160,7 +160,7 @@
   "Table Pattern": {
     "prefix": "table",
     "body": [
-      "use aptos_std::table::{Self, Table};",
+      "use cedra_framework::table::{Self, Table};",
       "",
       "struct ${1:Container} has key {",
       "\t${2:data}: Table<${3:address}, ${4:u64}>,$0",
@@ -204,19 +204,19 @@
   "Coin Transfer Pattern": {
     "prefix": "coin-transfer",
     "body": [
-      "use aptos_framework::coin::{Self, Coin};",
-      "use aptos_framework::aptos_coin::AptosCoin;",
+      "use cedra_framework::coin::{Self, Coin};",
+      "use cedra_framework::cedra_coin::CedraCoin;",
       "",
       "// Transfer coins",
-      "coin::transfer<AptosCoin>(${1:from}, ${2:to_address}, ${3:amount});$0"
+      "coin::transfer<CedraCoin>(${1:from}, ${2:to_address}, ${3:amount});$0"
     ],
-    "description": "Transfer Aptos coins between accounts"
+    "description": "Transfer Cedra coins between accounts"
   },
 
   "Timestamp Pattern": {
     "prefix": "timestamp",
     "body": [
-      "use aptos_framework::timestamp;",
+      "use cedra_framework::timestamp;",
       "",
       "let ${1:current_time} = timestamp::now_seconds();$0"
     ],
@@ -250,7 +250,7 @@
   "Smart Table Pattern": {
     "prefix": "smart-table",
     "body": [
-      "use aptos_std::smart_table::{Self, SmartTable};",
+      "use cedra_framework::smart_table::{Self, SmartTable};",
       "",
       "struct ${1:Container} has key {",
       "\t${2:data}: SmartTable<${3:address}, ${4:u64}>,$0",
