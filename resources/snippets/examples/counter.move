@@ -49,7 +49,6 @@ module examples::counter {
         counter.value = 0;
     }
 
-    /// Tests
     #[test(account = @0x1)]
     fun test_initialize(account: &signer) {
         initialize(account);

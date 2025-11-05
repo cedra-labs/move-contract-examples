@@ -3,9 +3,9 @@
 module examples::user_registry {
     use std::signer;
     use std::string::String;
-    use aptos_std::table::{Self, Table};
-    use aptos_framework::event;
-    use aptos_framework::timestamp;
+    use cedra_framework::table::{Self, Table};
+    use cedra_framework::event;
+    use cedra_framework::timestamp;
 
     /// Error codes
     const E_NOT_ADMIN: u64 = 1;
@@ -122,11 +122,15 @@ module examples::user_registry {
 
     #[test_only]
     use std::string;
+    #[test_only]
+    use cedra_framework::account;
 
     #[test(admin = @examples, alice = @0x1)]
     fun test_register(admin: &signer, alice: &signer) acquires Registry {
         // Setup
-        timestamp::set_time_has_started_for_testing(admin);
+        timestamp::set_time_has_started_for_testing(&account::create_signer_for_test(@0x1));
+        account::create_account_for_test(signer::address_of(admin));
+        account::create_account_for_test(signer::address_of(alice));
         initialize(admin);
 
         // Register user
@@ -140,7 +144,9 @@ module examples::user_registry {
     #[test(admin = @examples, alice = @0x1)]
     #[expected_failure(abort_code = E_USER_EXISTS)]
     fun test_duplicate_registration(admin: &signer, alice: &signer) acquires Registry {
-        timestamp::set_time_has_started_for_testing(admin);
+        timestamp::set_time_has_started_for_testing(&account::create_signer_for_test(@0x1));
+        account::create_account_for_test(signer::address_of(admin));
+        account::create_account_for_test(signer::address_of(alice));
         initialize(admin);
         register_user(alice, string::utf8(b"Alice"));
         register_user(alice, string::utf8(b"Alice2")); // Should fail

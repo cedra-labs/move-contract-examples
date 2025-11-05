@@ -3,10 +3,10 @@
 module examples::token_vault {
     use std::signer;
     use std::vector;
-    use aptos_framework::coin::{Self, Coin};
-    use aptos_framework::aptos_coin::AptosCoin;
-    use aptos_framework::event;
-    use aptos_framework::timestamp;
+    use cedra_framework::coin::{Self, Coin};
+    use cedra_framework::event;
+    use cedra_framework::timestamp;
+    use examples::cedra_coin_stub::CedraCoin;
 
     /// Error codes
     const E_VAULT_EXISTS: u64 = 1;
@@ -15,10 +15,10 @@ module examples::token_vault {
     const E_VAULT_LOCKED: u64 = 4;
     const E_NOT_UNLOCKED_YET: u64 = 5;
 
-    /// User's token vault
+    /// User's token vault - stores actual coins
     /// Created with: struct-key snippet
     struct Vault has key {
-        balance: u64,
+        coins: Coin<CedraCoin>,
         unlock_time: u64,
         deposit_history: vector<u64>,
     }
@@ -61,7 +61,7 @@ module examples::token_vault {
 
         // Used: move-to snippet
         move_to(account, Vault {
-            balance: 0,
+            coins: coin::zero<CedraCoin>(),
             unlock_time,
             deposit_history,
         });
@@ -76,13 +76,16 @@ module examples::token_vault {
         let addr = signer::address_of(account);
         assert!(exists<Vault>(addr), E_VAULT_NOT_FOUND);
 
-        // Transfer coins to vault (this module)
-        // Used: coin-transfer snippet (modified for receiving)
-        coin::transfer<AptosCoin>(account, @examples, amount);
+        // Withdraw coins from user account
+        let deposit_coins = coin::withdraw<CedraCoin>(account, amount);
 
         // Used: borrow-global-mut snippet
         let vault = borrow_global_mut<Vault>(addr);
-        vault.balance = vault.balance + amount;
+
+        // Merge coins into vault
+        coin::merge(&mut vault.coins, deposit_coins);
+
+        let new_balance = coin::value(&vault.coins);
 
         // Used: vector-ops snippet - record deposit
         vector::push_back(&mut vault.deposit_history, amount);
@@ -91,7 +94,7 @@ module examples::token_vault {
         event::emit(DepositEvent {
             user: addr,
             amount,
-            new_balance: vault.balance,
+            new_balance,
             timestamp: timestamp::now_seconds(),
         });
     }
@@ -110,19 +113,22 @@ module examples::token_vault {
         assert!(current_time >= vault.unlock_time, E_VAULT_LOCKED);
 
         // Check balance
-        assert!(vault.balance >= amount, E_INSUFFICIENT_BALANCE);
+        let balance = coin::value(&vault.coins);
+        assert!(balance >= amount, E_INSUFFICIENT_BALANCE);
 
-        // Update balance
-        vault.balance = vault.balance - amount;
+        // Extract coins from vault
+        let withdrawn_coins = coin::extract(&mut vault.coins, amount);
 
-        // Transfer coins back to user
-        coin::transfer<AptosCoin>(@examples, addr, amount);
+        // Deposit to user account
+        coin::deposit(addr, withdrawn_coins);
+
+        let remaining_balance = coin::value(&vault.coins);
 
         // Emit event
         event::emit(WithdrawalEvent {
             user: addr,
             amount,
-            remaining_balance: vault.balance,
+            remaining_balance,
             timestamp: current_time,
         });
     }
@@ -131,7 +137,7 @@ module examples::token_vault {
     /// Created with: fun-acquires snippet
     public fun get_balance(addr: address): u64 acquires Vault {
         assert!(exists<Vault>(addr), E_VAULT_NOT_FOUND);
-        borrow_global<Vault>(addr).balance
+        coin::value(&borrow_global<Vault>(addr).coins)
     }
 
     /// Get unlock time
@@ -156,17 +162,36 @@ module examples::token_vault {
     }
 
     #[test_only]
-    use aptos_framework::account;
+    use cedra_framework::account;
+    #[test_only]
+    use std::string;
 
     #[test(framework = @0x1, admin = @examples, alice = @0x42)]
     fun test_vault_lifecycle(framework: &signer, admin: &signer, alice: &signer) acquires Vault {
-        // Setup
-        timestamp::set_time_has_started_for_testing(framework);
-        let (burn_cap, mint_cap) = aptos_framework::aptos_coin::initialize_for_test(framework);
-
-        // Create accounts
+        // Setup accounts
         account::create_account_for_test(signer::address_of(alice));
         account::create_account_for_test(signer::address_of(admin));
+
+        // Setup timestamp
+        timestamp::set_time_has_started_for_testing(framework);
+
+        // Setup coin framework (initializes CoinConversionMap and metadata)
+        let (burn_cap, freeze_cap, mint_cap) = coin::initialize<CedraCoin>(
+            admin,
+            string::utf8(b"Cedra Coin"),
+            string::utf8(b"CEDRA"),
+            8,
+            false,
+        );
+        coin::destroy_freeze_cap(freeze_cap);
+
+        // Register coin conversion map (required for Cedra - must use @0x1)
+        let framework_signer = &account::create_signer_for_test(@0x1);
+        coin::create_coin_conversion_map(framework_signer);
+        coin::create_pairing<CedraCoin>(framework_signer);
+
+        // Register alice for CedraCoin
+        coin::register<CedraCoin>(alice);
 
         // Mint coins to alice
         let coins = coin::mint(1000, &mint_cap);
@@ -179,9 +204,6 @@ module examples::token_vault {
         deposit(alice, 500);
         assert!(get_balance(signer::address_of(alice)) == 500, 0);
         assert!(get_deposit_count(signer::address_of(alice)) == 1, 1);
-
-        // Try to withdraw before unlock (should fail)
-        // This would fail: withdraw(alice, 100);
 
         // Fast forward time
         timestamp::fast_forward_seconds(101);
