@@ -1,0 +1,267 @@
+{
+  "Move Module Template": {
+    "prefix": "module",
+    "body": [
+      "module ${1:module_address}::${2:module_name} {",
+      "\t// === Imports ===",
+      "\tuse std::signer;",
+      "\t",
+      "\t// === Errors ===",
+      "\tconst ${3:E_ERROR}: u64 = 1;",
+      "\t",
+      "\t// === Structs ===",
+      "\t$0",
+      "\t",
+      "\t// === Public Functions ===",
+      "\t",
+      "\t// === Private Functions ===",
+      "\t",
+      "\t// === Tests ===",
+      "\t#[test_only]",
+      "\tuse std::debug;",
+      "}"
+    ],
+    "description": "Create a complete Move module structure with imports, errors, structs, and functions sections"
+  },
+
+  "Struct with Key Ability": {
+    "prefix": "struct-key",
+    "body": [
+      "/// ${1:Description of the resource}",
+      "struct ${2:ResourceName} has key {",
+      "\t${3:field_name}: ${4:u64},$0",
+      "}"
+    ],
+    "description": "Define a resource struct with 'key' ability for global storage"
+  },
+
+  "Struct with Store Ability": {
+    "prefix": "struct-store",
+    "body": [
+      "/// ${1:Description of the storable struct}",
+      "struct ${2:StructName} has store {",
+      "\t${3:field_name}: ${4:u64},$0",
+      "}"
+    ],
+    "description": "Define a struct with 'store' ability that can be stored inside other resources"
+  },
+
+  "Struct with All Abilities": {
+    "prefix": "struct-full",
+    "body": [
+      "/// ${1:Description of the struct}",
+      "struct ${2:StructName} has copy, drop, store, key {",
+      "\t${3:field_name}: ${4:u64},$0",
+      "}"
+    ],
+    "description": "Define a struct with all abilities: copy, drop, store, and key"
+  },
+
+  "Public Entry Function": {
+    "prefix": "fun-entry",
+    "body": [
+      "/// ${1:Description of what this function does}",
+      "public entry fun ${2:function_name}(",
+      "\t${3:account}: &signer,$0",
+      ") {",
+      "\tlet account_addr = signer::address_of(account);",
+      "\t$4",
+      "}"
+    ],
+    "description": "Create a public entry function callable from transactions"
+  },
+
+  "Public Function with Acquires": {
+    "prefix": "fun-acquires",
+    "body": [
+      "/// ${1:Description of what this function does}",
+      "public fun ${2:function_name}(",
+      "\t${3:addr}: address,$0",
+      "): ${4:u64} acquires ${5:ResourceName} {",
+      "\tlet resource = borrow_global<${5:ResourceName}>(${3:addr});",
+      "\t$6",
+      "}"
+    ],
+    "description": "Create a public function that acquires a global resource"
+  },
+
+  "Move To Pattern": {
+    "prefix": "move-to",
+    "body": [
+      "move_to(${1:account}, ${2:ResourceName} {",
+      "\t${3:field}: ${4:value},$0",
+      "});"
+    ],
+    "description": "Move a resource to an account's global storage"
+  },
+
+  "Move From Pattern": {
+    "prefix": "move-from",
+    "body": [
+      "let ${1:ResourceName} { ${2:field} } = move_from<${1:ResourceName}>(${3:addr});$0"
+    ],
+    "description": "Remove and destructure a resource from global storage"
+  },
+
+  "Borrow Global": {
+    "prefix": "borrow-global",
+    "body": [
+      "let ${1:resource_ref} = borrow_global<${2:ResourceName}>(${3:addr});$0"
+    ],
+    "description": "Borrow an immutable reference to a global resource"
+  },
+
+  "Borrow Global Mut": {
+    "prefix": "borrow-global-mut",
+    "body": [
+      "let ${1:resource_ref} = borrow_global_mut<${2:ResourceName}>(${3:addr});$0"
+    ],
+    "description": "Borrow a mutable reference to a global resource"
+  },
+
+  "Assert Pattern": {
+    "prefix": "assert",
+    "body": [
+      "assert!(${1:condition}, ${2:E_ERROR_CODE});$0"
+    ],
+    "description": "Assert a condition with an error code"
+  },
+
+  "Vector Operations": {
+    "prefix": "vector-ops",
+    "body": [
+      "use std::vector;",
+      "",
+      "let ${1:vec} = vector::empty<${2:u64}>();",
+      "vector::push_back(&mut ${1:vec}, ${3:value});",
+      "let ${4:item} = vector::pop_back(&mut ${1:vec});",
+      "let ${5:length} = vector::length(&${1:vec});$0"
+    ],
+    "description": "Common vector operations: create, push, pop, and length"
+  },
+
+  "Event Emit Pattern": {
+    "prefix": "event-emit",
+    "body": [
+      "use cedra_framework::event;",
+      "",
+      "/// ${1:Event description}",
+      "#[event]",
+      "struct ${2:EventName} has drop, store {",
+      "\t${3:field}: ${4:u64},$0",
+      "}",
+      "",
+      "// Emit the event",
+      "event::emit(${2:EventName} { ${3:field}: ${5:value} });"
+    ],
+    "description": "Define and emit an event in Move"
+  },
+
+  "Table Pattern": {
+    "prefix": "table",
+    "body": [
+      "use cedra_framework::table::{Self, Table};",
+      "",
+      "struct ${1:Container} has key {",
+      "\t${2:data}: Table<${3:address}, ${4:u64}>,$0",
+      "}",
+      "",
+      "// Create table",
+      "let ${2:data} = table::new<${3:address}, ${4:u64}>();",
+      "",
+      "// Add entry",
+      "table::add(&mut ${2:data}, ${5:key}, ${6:value});",
+      "",
+      "// Get entry",
+      "let ${7:val} = table::borrow(&${2:data}, ${5:key});"
+    ],
+    "description": "Use Table for key-value storage in resources"
+  },
+
+  "Test Function": {
+    "prefix": "test",
+    "body": [
+      "#[test(${1:account} = @0x1)]",
+      "fun test_${2:function_name}(${1:account}: &signer) {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Create a test function with a signer parameter"
+  },
+
+  "Test with Expected Failure": {
+    "prefix": "test-fail",
+    "body": [
+      "#[test(${1:account} = @0x1)]",
+      "#[expected_failure(abort_code = ${2:E_ERROR_CODE})]",
+      "fun test_${3:failure_case}(${1:account}: &signer) {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Create a test that expects a specific failure"
+  },
+
+  "Coin Transfer Pattern": {
+    "prefix": "coin-transfer",
+    "body": [
+      "use cedra_framework::coin::{Self, Coin};",
+      "use cedra_framework::cedra_coin::CedraCoin;",
+      "",
+      "// Transfer coins",
+      "coin::transfer<CedraCoin>(${1:from}, ${2:to_address}, ${3:amount});$0"
+    ],
+    "description": "Transfer Cedra coins between accounts"
+  },
+
+  "Timestamp Pattern": {
+    "prefix": "timestamp",
+    "body": [
+      "use cedra_framework::timestamp;",
+      "",
+      "let ${1:current_time} = timestamp::now_seconds();$0"
+    ],
+    "description": "Get current blockchain timestamp"
+  },
+
+  "Option Pattern": {
+    "prefix": "option",
+    "body": [
+      "use std::option::{Self, Option};",
+      "",
+      "let ${1:opt} = option::some(${2:value});",
+      "if (option::is_some(&${1:opt})) {",
+      "\tlet ${3:val} = option::extract(&mut ${1:opt});",
+      "\t$0",
+      "}"
+    ],
+    "description": "Use Option type for nullable values"
+  },
+
+  "String Pattern": {
+    "prefix": "string",
+    "body": [
+      "use std::string::{Self, String};",
+      "",
+      "let ${1:str} = string::utf8(b\"${2:Hello, Move!}\");$0"
+    ],
+    "description": "Create a UTF-8 string from bytes"
+  },
+
+  "Smart Table Pattern": {
+    "prefix": "smart-table",
+    "body": [
+      "use cedra_framework::smart_table::{Self, SmartTable};",
+      "",
+      "struct ${1:Container} has key {",
+      "\t${2:data}: SmartTable<${3:address}, ${4:u64}>,$0",
+      "}",
+      "",
+      "// Create smart table (more efficient than Table for large data)",
+      "let ${2:data} = smart_table::new<${3:address}, ${4:u64}>();",
+      "",
+      "// Add or update entry",
+      "smart_table::upsert(&mut ${2:data}, ${5:key}, ${6:value});"
+    ],
+    "description": "Use SmartTable for efficient large-scale key-value storage"
+  }
+}
