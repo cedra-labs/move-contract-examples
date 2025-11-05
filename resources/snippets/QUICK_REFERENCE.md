@@ -113,7 +113,7 @@ module my_addr::user_registry {
 // 1. module
 module my_addr::marketplace {
     use std::signer;
-    use aptos_std::table::Table;
+    use cedra_framework::table::Table;
 
     // 2. struct-store - Item for sale
     struct Item has store {
@@ -150,7 +150,7 @@ module my_addr::marketplace {
         let marketplace = borrow_global_mut<Marketplace>(@marketplace_addr);
         let item = table::remove(&mut marketplace.listings, item_id);
         // 7. coin-transfer - Payment
-        coin::transfer<AptosCoin>(buyer, item.seller, item.price);
+        coin::transfer<CedraCoin>(buyer, item.seller, item.price);
         // 8. event-emit - Log purchase
         event::emit(PurchaseEvent { item_id, buyer: signer::address_of(buyer) });
     }
@@ -181,7 +181,7 @@ module my_addr::lottery {
         // 4. timestamp - Check deadline
         assert!(timestamp::now_seconds() < lottery.deadline, E_LOTTERY_ENDED);
         // 5. coin-transfer - Pay ticket
-        coin::transfer<AptosCoin>(participant, @lottery_addr, ticket_price);
+        coin::transfer<CedraCoin>(participant, @lottery_addr, ticket_price);
         // 6. vector-ops - Add participant
         vector::push_back(&mut lottery.participants, signer::address_of(participant));
         lottery.prize_pool = lottery.prize_pool + ticket_price;
@@ -266,10 +266,10 @@ fun test_transfer(alice: &signer, bob: &signer) {
 ### Use SmartTable for Large Data
 ```move
 // Good for < 1000 entries
-use aptos_std::table::Table;
+use cedra_framework::table::Table;
 
 // Good for > 1000 entries
-use aptos_std::smart_table::SmartTable;
+use cedra_framework::smart_table::SmartTable;
 ```
 
 ### Borrow vs Move

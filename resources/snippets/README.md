@@ -218,7 +218,7 @@ let length = vector::length(&items);
 Efficient key-value storage for resources.
 
 ```move
-use aptos_std::table::{Self, Table};
+use cedra_framework::table::{Self, Table};
 
 struct UserRegistry has key {
     users: Table<address, UserInfo>,
@@ -237,7 +237,7 @@ let user = table::borrow(&users, addr);
 More efficient than Table for large datasets.
 
 ```move
-use aptos_std::smart_table::{Self, SmartTable};
+use cedra_framework::smart_table::{Self, SmartTable};
 
 struct Registry has key {
     data: SmartTable<address, u64>,
@@ -257,7 +257,7 @@ smart_table::upsert(&mut data, key, value);
 Define and emit events for indexing.
 
 ```move
-use aptos_framework::event;
+use cedra_framework::event;
 
 /// Transfer event for tracking
 #[event]
@@ -310,13 +310,13 @@ fun test_double_initialize(account: &signer) {
 ### Blockchain Utilities
 
 #### `coin-transfer` - Transfer Coins
-Transfer Aptos coins between accounts.
+Transfer Cedra coins between accounts.
 
 ```move
-use aptos_framework::coin::{Self, Coin};
-use aptos_framework::aptos_coin::AptosCoin;
+use cedra_framework::coin::{Self, Coin};
+use cedra_framework::cedra_coin::CedraCoin;
 
-coin::transfer<AptosCoin>(from, to_address, amount);
+coin::transfer<CedraCoin>(from, to_address, amount);
 ```
 
 **Use when:** Implementing payments and transfers.
@@ -327,7 +327,7 @@ coin::transfer<AptosCoin>(from, to_address, amount);
 Access blockchain timestamp.
 
 ```move
-use aptos_framework::timestamp;
+use cedra_framework::timestamp;
 
 let current_time = timestamp::now_seconds();
 ```
@@ -468,9 +468,10 @@ module my_addr::counter {
 ## Resources
 
 - **Cedra Documentation**: https://docs.cedra.dev
-- **Move Book**: https://aptos.dev/move/book/
+- **Move Language Book**: https://move-language.github.io/move/
 - **Move Patterns**: https://www.move-patterns.com/
-- **Aptos Examples**: https://github.com/aptos-labs/aptos-core/tree/main/aptos-move/move-examples
+- **Cedra Framework**: https://github.com/cedra-labs/cedra-framework
+- **Cedra Examples**: https://github.com/cedra-labs/move-contract-examples
 
 ## Contributing
 
