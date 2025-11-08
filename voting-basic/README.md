@@ -23,6 +23,11 @@ A minimal, feature-complete voting platform allowing users to create proposals w
 **Explorer:** [View on Cedrascan](https://cedrascan.com/account/0xfedc238436368f33049325b66c5a66ac049a0483f2c3cd20d8ffeab89f0d617b?network=testnet)
 
 ---
+---
+## Live app Demo
+[WeDecide-Demo-basic-community-Voting](https://cedrascan.com/account/voting-basic-frontend.vercel.app)
+
+--- 
 
 ## Project Structure
 
