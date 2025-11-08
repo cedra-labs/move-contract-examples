@@ -1,0 +1,170 @@
+@config "../tailwind.config.js";
+@import "tailwindcss";
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-gradient-to-br from-[#0a0a0f] via-[#13131f] to-[#1a1a2e] text-white min-h-screen antialiased;
+    background-attachment: fixed;
+  }
+
+  /* Animated Background Grid */
+  body::before {
+    content: '';
+    background-size: 50px 50px;
+    /* z-index: -1; */
+    animation: gridMove 20s linear infinite;
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-900/50;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-purple-500/30 rounded-lg;
+    transition: background 0.2s;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-purple-500/50;
+  }
+}
+
+@layer utilities {
+  /* Glassmorphism */
+  .glass {
+    @apply bg-white/5 backdrop-blur-2xl border border-white/10;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+
+  .glass-hover {
+    @apply transition-all duration-300;
+  }
+
+  .glass-hover:hover {
+    @apply bg-white/8 border-white/20 -translate-y-1;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Gradient Text */
+  .gradient-text {
+    @apply bg-gradient-to-r from-purple-500 via-blue-500 to-cyan-500 bg-clip-text text-transparent;
+    background-size: 200% 200%;
+  }
+
+  .gradient-text-animated {
+    @apply bg-gradient-to-r from-purple-500 via-blue-500 to-cyan-500 bg-clip-text text-transparent;
+    background-size: 200% 200%;
+    animation: gradientShift 8s ease infinite;
+  }
+
+  /* Glow Border Animation */
+  .glow-border {
+    @apply relative overflow-hidden;
+  }
+
+
+
+  .glow-border:hover::before {
+    @apply opacity-100;
+    animation: borderRotate 3s linear infinite;
+  }
+
+  /* Pulse Glow */
+  .pulse-glow {
+    animation: pulseGlow 2s ease-in-out infinite;
+  }
+
+  /* Glass Light - Lighter glass effect */
+  .glass-light {
+    @apply bg-white/3 backdrop-blur-xl border border-white/5;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Scale In Animation */
+  .scale-in {
+    animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  /* Button Press Effect */
+  .btn-press:active {
+    @apply scale-95 transition-transform duration-100;
+  }
+
+  /* Card Lift Effect */
+  .card-lift {
+    @apply transition-all duration-300;
+  }
+
+  .card-lift:hover {
+    @apply -translate-y-2 scale-[1.02];
+  }
+
+}
+
+/* Animations */
+@keyframes gridMove {
+  0% {
+    transform: translate(0, 0);
+  }
+  100% {
+    transform: translate(50px, 50px);
+  }
+}
+
+@keyframes gradientShift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes borderRotate {
+  0% {
+    filter: hue-rotate(0deg);
+  }
+  100% {
+    filter: hue-rotate(360deg);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(139, 92, 246, 0.6);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,15 @@
+[package]
+name = "voting_basic"
+version = "1.0.0"
+authors = []
+
+[addresses]
+voting = "_"
+
+[dev-addresses]
+voting = "0xCAFE"
+
+[dependencies]
+CedraFramework = { git = "https://github.com/cedra-labs/cedra-framework.git", subdir = "cedra-framework", rev = "main" }
+
+[dev-dependencies]
