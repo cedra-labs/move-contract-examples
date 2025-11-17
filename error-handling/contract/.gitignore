@@ -1,0 +1,25 @@
+# Build artifacts
+build/
+.move/
+
+# Compiler cache
+.aptos/
+
+# Coverage reports
+coverage/
+*.mvcov
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+.cedra/
+
+# Logs
+*.log
