@@ -14,7 +14,7 @@ Secure time-locked escrow contract for Cedra fungible assets with advanced featu
 - **Advanced View Functions** - Query contract state
 
 ### Recent Enhancements (v2.0)
-This contract has been significantly enhanced with production-ready features. See [ENHANCEMENT_SUMMARY.md](./ENHANCEMENT_SUMMARY.md) for complete details.
+This contract has been significantly enhanced with production-ready features including event tracking, batch operations, partial withdrawals, and emergency pause controls.
 
 ## Installation
 
@@ -24,13 +24,13 @@ git clone https://github.com/cedra-labs/move-contract-examples
 cd move-contract-examples/fa-lock
 
 # Compile
-cedra move compile --move-2 --dev
+cedra move compile --named-addresses lock_deployer=default
 
 # Test
-cedra move test --move-2 --dev
+cedra move test --dev
 
 # Publish
-cedra move publish --move-2 --named-addresses lock_deployer=default
+cedra move publish --named-addresses lock_deployer=default
 ```
 
 ## Quick Start
@@ -257,13 +257,13 @@ Run the comprehensive test suite:
 
 ```bash
 # Run all tests
-cedra move test --move-2 --dev
+cedra move test --dev
 
 # Run specific test
-cedra move test --move-2 --dev -f test_partial_withdraw_simple_escrow
+cedra move test --dev -f test_partial_withdraw_simple_escrow
 
 # Run with coverage
-cedra move test --move-2 --dev --coverage
+cedra move test --dev --coverage
 ```
 
 Test coverage includes:
@@ -343,9 +343,8 @@ batch_escrow_with_time(creator, ...);        // NEW
 ## Additional Resources
 
 - **Full Docs:** [https://docs.cedra.network/guides/escrow](https://docs.cedra.network/guides/escrow)
-- **Enhancement Details:** [ENHANCEMENT_SUMMARY.md](./ENHANCEMENT_SUMMARY.md)
-- **Original Contract:** [sources/lock_ORIGINAL.move](./sources/lock_ORIGINAL.move)
 - **Telegram:** [Cedra Builders Chat](https://t.me/+Ba3QXd0VG9U0Mzky)
+- **GitHub Issues:** [Report bugs or request features](https://github.com/cedra-labs/move-contract-examples/issues)
 
 ## Contributing
 
