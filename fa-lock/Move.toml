@@ -9,6 +9,10 @@ lock_deployer = "_"
 [dev-addresses]
 lock_deployer = "0xc1"
 
+# Example deployment address:
+# lock_deployer = "0x........." add an address for the proper compiling process
+
+
 [dependencies.CedraFramework]
 git = "https://github.com/cedra-labs/cedra-framework.git"
 rev = "main"
