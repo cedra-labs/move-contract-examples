@@ -4,7 +4,7 @@ version = "1.0.0"
 authors = []
 
 [addresses]
-error_patterns = "_"
+error_patterns = "0xCAFE"
 
 [dev-addresses]
 error_patterns = "0xCAFE"

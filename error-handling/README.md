@@ -291,13 +291,13 @@ cedra move test -- --show-output
 
 ## 📊 Test Coverage
 
-| Module             | Total Tests | Success Tests | Failure Tests | Coverage |
-| ------------------ | ----------- | ------------- | ------------- | -------- |
-| assert_vs_abort    | 12          | 6             | 6             | 100%     |
-| custom_error_codes | 14          | 7             | 7             | 100%     |
-| error_propagation  | 12          | 6             | 6             | 100%     |
-| testing_errors     | 28          | 14            | 14            | 100%     |
-| **TOTAL**          | **66**      | **33**        | **33**        | **100%** |
+| Module             | Tests | Passing | Coverage |
+| ------------------ | ----- | ------- | -------- |
+| assert_vs_abort    | 9     | 9       | 100%     |
+| custom_error_codes | 10    | 10      | 100%     |
+| error_propagation  | 10    | 10      | 100%     |
+| testing_errors     | 26    | 26      | 100%     |
+| **TOTAL**          | **55**| **55**  | **100%** |
 
 ## 🎯 Learning Path
 
