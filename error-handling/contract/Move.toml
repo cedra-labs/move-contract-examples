@@ -1,0 +1,15 @@
+[package]
+name = "error_handling_patterns"
+version = "1.0.0"
+authors = []
+
+[addresses]
+error_patterns = "0xCAFE"
+
+[dev-addresses]
+error_patterns = "0xCAFE"
+
+[dependencies]
+CedraFramework = { git = "https://github.com/cedra-labs/cedra-framework.git", subdir = "cedra-framework", rev = "main" }
+
+[dev-dependencies]
