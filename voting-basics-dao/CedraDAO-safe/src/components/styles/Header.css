@@ -1,0 +1,160 @@
+/* Header.css - Vanilla CSS for Header component */
+
+.header {
+  background: #101010;
+  border-bottom: 1px solid var(--border, rgba(255,255,255,0.08));
+  padding: 0.4rem 0.6rem;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  width: 100%;
+}
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+.header-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.header-logo-image {
+  width: 2rem;
+  height: 2rem;
+  object-fit: contain;
+}
+.header-title {
+  font-size: 1rem;
+  font-weight: bold;
+  color: var(--text, #fff);
+  line-height: 1.2;
+}
+@media (min-width: 640px) {
+  .header-title {
+    font-size: 1.125rem;
+  }
+}
+.header-subtitle {
+  font-size: 0.625rem;
+  color: var(--text-dim, #9ca3af);
+  line-height: 1.2;
+}
+@media (min-width: 640px) {
+  .header-subtitle {
+    font-size: 0.75rem;
+  }
+}
+.header-search {
+  position: relative;
+  display: none;
+}
+@media (min-width: 768px) {
+  .header-search {
+    display: block;
+  }
+}
+.header-search-input {
+  padding-left: 2.5rem;
+  padding-right: 1rem;
+  padding-top: 0.625rem;
+  padding-bottom: 0.625rem;
+  width: 20rem;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  outline: none;
+  background: var(--card-bg, rgba(20, 20, 23, 0.6));
+  color: var(--text, #fff);
+  transition: all 0.2s ease;
+}
+
+.header-search-input:focus {
+  border-color: #6366f1;
+  background: var(--card-bg, rgba(20, 20, 23, 0.8));
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+}
+
+.header-search-input::placeholder {
+  color: var(--text-dim, #9ca3af);
+}
+.header-search-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-dim, #9ca3af);
+  width: 1rem;
+  height: 1rem;
+}
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .header-actions {
+    gap: 1rem;
+  }
+}
+
+.header-wallet-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  background: var(--card-bg, rgba(20, 20, 23, 0.8));
+  border-radius: 13px;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  color: var(--text, inherit);
+  min-width: 120px;
+  width: 100%;
+  height: 100%;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.header-wallet-btn:hover {
+  background: var(--card-bg, rgba(25, 25, 28, 0.9));
+  border-color: var(--border, rgba(255, 255, 255, 0.12));
+}
+.header-menu-btn {
+  display: none;
+  padding: 0.5rem;
+  color: var(--text, #fff);
+  background: none;
+  border: none;
+  border-radius: 0.5rem;
+  transition: color 0.2s;
+  cursor: pointer;
+  z-index: 100;
+}
+.header-menu-btn:hover {
+  color: var(--text, #fff);
+  opacity: 0.8;
+}
+
+@media (max-width: 767px) {
+  .header-menu-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+@media (min-width: 768px) {
+  .header-menu-btn {
+    display: none !important;
+  }
+}
+
+ 

@@ -1,0 +1,17 @@
+[package]
+name = "daooncedra"
+version = "1.0.0"
+authors = []
+
+[addresses]
+movedao_addrx = "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8"
+
+
+[dev-addresses]
+
+
+[dependencies.CedraFramework]
+git = "https://github.com/cedra-labs/cedra-framework.git"
+rev = "main"
+subdir = "cedra-framework"
+[dev-dependencies]

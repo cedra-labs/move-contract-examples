@@ -1,0 +1,540 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap");
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Root theme variables */
+:root {
+  --bg: #101010;
+  --bg-soft: #101010;
+  --text: #ffffff;
+  --text-dim: #9aa0a6;
+  --card-bg: rgba(16, 16, 16, 1);
+  --border: rgba(255, 255, 255, 0.1);
+}
+
+body {
+  padding: 0;
+  margin: 0;
+  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
+  font-weight: 400;
+  font-style: normal;
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: #080808;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  color: var(--text, #ffffff);
+}
+
+.professional-card { 
+  background: var(--card-bg, rgba(25, 25, 28, 0.4)); 
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Theme-aware input styles */
+.professional-input {
+  background: var(--card-bg, rgba(25, 25, 28, 0.4)) !important;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.1)) !important;
+  color: var(--text, #ffffff) !important;
+  transition: all 0.3s ease;
+}
+
+.professional-input::placeholder {
+  color: var(--text-dim, #9aa0a6) !important;
+}
+
+/* Theme-aware text colors */
+.text-white {
+  color: var(--text, #ffffff) !important;
+}
+
+.text-gray-400 {
+  color: var(--text-dim, #9aa0a6) !important;
+}
+
+
+
+/* Strong theme overrides for common Tailwind classes */
+.bg-black\/80,
+.bg-gray-900,
+.bg-gray-800 {
+  background-color: var(--card-bg) !important;
+}
+
+.text-white {
+  color: var(--text) !important;
+}
+
+.text-gray-400,
+.text-gray-300,
+.text-gray-500 {
+  color: var(--text-dim) !important;
+}
+
+.border-white\/10,
+.border-gray-700,
+.border-gray-800 {
+  border-color: var(--border) !important;
+}
+
+/* Override specific Tailwind background utilities */
+.bg-\[rgba\(25\,\ 25\,\ 28\,\ 0\.4\)\],
+.bg-\[rgba\(25\,\ 25\,\ 28\,\ 0\.9\)\] {
+  background-color: var(--card-bg) !important;
+}
+
+/* Add utility layer to override all theme-related styles */
+@layer utilities {
+  /* Background overrides */
+  .bg-primary,
+  .bg-card,
+  .bg-input {
+    background-color: var(--card-bg) !important;
+  }
+  
+  /* Text color overrides */
+  .text-primary {
+    color: var(--text) !important;
+  }
+  
+  .text-secondary {
+    color: var(--text-dim) !important;
+  }
+  
+  /* Border overrides */
+  .border-primary {
+    border-color: var(--border) !important;
+  }
+}
+
+/* Force all common background patterns to use theme variables */
+[class*="bg-gray-"],
+[class*="bg-slate-"],
+[class*="bg-zinc-"] {
+  background-color: var(--card-bg) !important;
+}
+
+
+
+
+/* Ensure all text inherits Inter unless overridden */
+*, *::before, *::after {
+  font-family: inherit;
+}
+
+/* Responsive padding for All DAOs grid */
+.dao-grid {
+}
+
+@media (max-width: 640px) {
+  .dao-grid {
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2a2a2f;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3a3a3f;
+}
+
+/* Custom animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Line clamp utility */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Slide-in animation for mobile sidebar */
+@keyframes slideInSidebar {
+  from { transform: translateX(-100%); opacity: 0.7; }
+  to { transform: translateX(0); opacity: 1; }
+}
+.animate-slide-in {
+  animation: slideInSidebar 0.25s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* Professional card styles - Clean version with subtle background */
+.professional-card {
+  background: rgba(25, 25, 28, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+}
+
+/* Professional button styles */
+.btn-primary {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #5855eb 0%, #7c3aed 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4);
+}
+
+/* Professional input styles */
+.professional-input {
+  background: rgba(20, 20, 23, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #fff;
+  transition: all 0.3s ease;
+}
+
+.professional-input:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  outline: none;
+}
+
+/* Professional stats cards */
+.stats-card {
+  background: linear-gradient(135deg, rgba(25, 25, 28, 0.9) 0%, rgba(40, 40, 43, 0.8) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.stats-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6, #ec4899);
+}
+
+/* Pop-in animation for stats cards */
+@keyframes popIn {
+  0% { opacity: 0; transform: scale(0.92) translateY(20px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+.animate-pop-in {
+  animation: popIn 0.35s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* DAO Interface Styles */
+.interface-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.card {
+  background: linear-gradient(135deg, rgba(25, 25, 28, 0.9) 0%, rgba(35, 35, 38, 0.8) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.card-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 8px 0;
+}
+
+.card-description {
+  color: #b0b0b0;
+  margin: 0 0 24px 0;
+  line-height: 1.5;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-label {
+  font-weight: 500;
+  color: #fff;
+  font-size: 14px;
+}
+
+.form-input {
+  background: rgba(20, 20, 23, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #fff;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  font-family: inherit;
+}
+
+.form-input:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  outline: none;
+}
+
+.form-input::placeholder {
+  color: #666;
+}
+
+.submit-button {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  border: none;
+  color: white;
+  padding: 14px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: inherit;
+}
+
+.submit-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #5855eb 0%, #7c3aed 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4);
+}
+
+.submit-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.message {
+  padding: 16px;
+  border-radius: 8px;
+  margin-top: 16px;
+  font-family: inherit;
+}
+
+.message.success {
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  color: #4ade80;
+}
+
+.message.error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #f87171;
+}
+
+.transaction-info {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 16px;
+}
+
+.info-card {
+  background: linear-gradient(135deg, rgba(15, 15, 17, 0.9) 0%, rgba(25, 25, 28, 0.8) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.info-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 16px 0;
+}
+
+.info-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.info-list li {
+  color: #b0b0b0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+
+/* Web3 Wallet Loader Styles */
+.wallet-icon-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.square-loader {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 94px;
+  height: 94px;
+  margin: -47px 0 0 -47px;
+  transform: rotate(-90deg);
+}
+
+.square-loader svg {
+  width: 100%;
+  height: 100%;
+}
+
+.square-progress {
+  fill: none;
+  stroke: #f6851b;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 25 75;
+  animation: square-dash 1.5s linear infinite;
+}
+
+@keyframes square-dash {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: -100;
+  }
+}
+
+
+
+
+
+.wallet-icon-pulse {
+  animation: wallet-pulse 2s ease-in-out infinite;
+}
+
+@keyframes wallet-pulse {
+  0%, 100% {
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  }
+  50% {
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  }
+}
+
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .interface-container {
+    padding: 16px;
+    gap: 16px;
+  }
+  
+  .card {
+    padding: 16px;
+  }
+  
+  .card-title {
+    font-size: 1.375rem;
+    line-height: 1.3;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+  }
+  
+  .loader-orbit,
+  .loader-orbit-glow {
+    width: 72px;
+    height: 72px;
+    margin: -36px 0 0 -36px;
+  }
+}
+
+/* Custom padding overrides */
+.px-4 {
+  padding-left: 0.4rem !important;
+  padding-right: 0.4rem !important;
+}
+
+/* Mobile-specific override for px-6: keep left 1.5rem, reduce right to 0.2rem */
+@media (max-width: 640px) {
+  .px-6 {
+    padding-left: 0 !important;
+    padding-right: 0.2rem !important;
+  }
+  /* Exemption class: apply to elements that should keep default right padding */
+  .no-px-override.px-6 {
+    padding-left: 1.5rem !important;
+    padding-right: 1.5rem !important;
+  }
+}
+
+/* Mosaic Widget - Ensure token images display properly */
+[class*="mosaic"] img,
+[class*="token"] img,
+[id*="mosaic"] img,
+[data-loaded="true"] {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+/* Force all images with data-loaded attribute to be visible */
+img[data-loaded="true"] {
+  opacity: 1 !important;
+  transition: opacity 0.3s ease !important;
+}
+
+/* Mosaic Widget - Preserve button styles */
+[class*="mosaic"] button,
+[class*="mosaic"] .bg-primary {
+  background-color: revert !important;
+}
+
+button[style*="background-color"][style*="#e1ff62"],
+button[style*="background-color"][style*="rgb(225, 255, 98)"] {
+  background-color: #e1ff62 !important;
+}
+
+button[style*="background-color"][style*="rgb(230, 177, 19)"] {
+  background-color: rgb(230, 177, 19) !important;
+}
+
+/* Remove py-12 padding */
+.py-12 {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
