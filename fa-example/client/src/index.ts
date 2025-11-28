@@ -1,8 +1,8 @@
 import { Account, AccountAddress, Cedra, CedraConfig, Network, Ed25519PrivateKey } from "@cedra-labs/ts-sdk";
 
 // Constants
-const NETWORK = Network.DEVNET;
-const MODULE_ADDRESS = "_";
+const NETWORK = Network.TESTNET;
+const MODULE_ADDRESS = "0xf9a0a0836db5692a557dc16a7cc3ed8fb9498c4336dae518bb990e7217e14f4e";
 const MODULE_NAME = "CedraAsset";
 const MODULE_FULL_PATH = `${MODULE_ADDRESS}::${MODULE_NAME}`;
 
@@ -11,12 +11,14 @@ const fullnode = "https://testnet.cedra.dev/v1";
 const faucet = "https://faucet-api.cedra.dev";
 // Using private key to create account is a security risk, this is only for educational purposes.
 // For production use, do not define your private key as this will expose to the public
-const ADMIN_PRIVATE_KEY = "_";
+const ADMIN_PRIVATE_KEY = "0x17777f1277854507a9be7a9b361bc7d42f660bb54f54a9d531e4fc2866cf40b5";
 
 // Token amounts
 const ONE_CEDRA_IN_OCTAS = 100_000_000; // 1 CEDRA = 100 million octas
 const TRANSFER_AMOUNT = 500;
 const RETURN_AMOUNT = 250;
+const BURN_AMOUNT = 100; // Amount to burn
+
 
 /**
  * Funds an account with 1 CEDRA
@@ -67,8 +69,8 @@ const example = async () => {
   console.log("Starting CedraAsset demo");
   console.log(`Using module: ${MODULE_FULL_PATH}`);
 
-  // Setup
-  const config = new CedraConfig({ network: NETWORK, fullnode, faucet });
+  // Setup - SDK will use default URLs for the specified network
+  const config = new CedraConfig({ network: NETWORK });
   const cedra = new Cedra(config);
 
   // Using private key to create account is a security risk, this is only for educational purposes.
@@ -128,12 +130,43 @@ const example = async () => {
     await cedra.waitForTransaction({ transactionHash: transferRes.hash });
     console.log("Transfer transaction confirmed!");
     
-    // Check final state
-    console.log("\nChecking final balances...");
+    // Check state after transfer
+    console.log("\nChecking balances after transfer...");
     await checkBalance(cedra, "Admin", admin.accountAddress);
     await checkBalance(cedra, "New User", user.accountAddress);
     
-    console.log("\nFull flow completed successfully!");
+    // Step 3: Burn tokens (deflationary action)
+    console.log("\nBurning tokens from user account...");
+    const burnTxn = await cedra.transaction.build.simple({
+      sender: user.accountAddress,
+      data: { 
+        function: `${MODULE_ADDRESS}::${MODULE_NAME}::burn`,
+        functionArguments: [BURN_AMOUNT] 
+      }
+    });
+    
+    console.log("Burn transaction built successfully, signing with user account...");
+    const burnRes = await cedra.signAndSubmitTransaction({ signer: user, transaction: burnTxn });
+    console.log("Burn transaction submitted: ", burnRes.hash);
+    
+    console.log("Waiting for burn transaction to be confirmed...");
+    await cedra.waitForTransaction({ transactionHash: burnRes.hash });
+    console.log("Burn transaction confirmed! Tokens permanently removed from circulation.");
+    
+    // Check final state
+    console.log("\nChecking final balances after burn...");
+    await checkBalance(cedra, "Admin", admin.accountAddress);
+    await checkBalance(cedra, "New User", user.accountAddress);
+    
+    console.log("\n" + "=".repeat(60));
+    console.log("Full flow completed successfully!");
+    console.log("=".repeat(60));
+    console.log("Operations performed:");
+    console.log(`  ✓ Minted ${TRANSFER_AMOUNT} tokens to user`);
+    console.log(`  ✓ Transferred ${RETURN_AMOUNT} tokens from user to admin`);
+    console.log(`  ✓ Burned ${BURN_AMOUNT} tokens (permanently removed from supply)`);
+    console.log(`\n💡 Note: The ${BURN_AMOUNT} burned tokens are permanently removed from circulation,`);
+    console.log("   creating a deflationary effect on the token supply.");
     
   } catch (error) {
     console.error("Error during operation:", error);
