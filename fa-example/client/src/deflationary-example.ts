@@ -2,14 +2,14 @@ import { Account, AccountAddress, Cedra, CedraConfig, Network, Ed25519PrivateKey
 
 // Constants
 const NETWORK = Network.TESTNET;
-const MODULE_ADDRESS = "0xf9a0a0836db5692a557dc16a7cc3ed8fb9498c4336dae518bb990e7217e14f4e";
+const MODULE_ADDRESS = "_";
 const MODULE_NAME = "CedraAsset";
 const MODULE_FULL_PATH = `${MODULE_ADDRESS}::${MODULE_NAME}`;
 
 // Using private key to create account is a security risk, this is only for educational purposes.
 // For production use, do not define your private key as this will expose to the public
 // This must match the account that deployed the contract (from contract/.cedra/config.yaml)
-const ADMIN_PRIVATE_KEY = "0x17777f1277854507a9be7a9b361bc7d42f660bb54f54a9d531e4fc2866cf40b5";
+const ADMIN_PRIVATE_KEY = "_";
 
 // Token amounts
 const ONE_CEDRA_IN_OCTAS = 100_000_000; // 1 CEDRA = 100 million octas
