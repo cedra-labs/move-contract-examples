@@ -1,0 +1,17 @@
+[package]
+name = "lottery_simple"
+version = "1.0.0"
+authors = []
+
+[addresses]
+lottery_simple = "_"
+
+[dev-addresses]
+lottery_simple = "0x01234"
+
+[dependencies.CedraFramework]
+git = "https://github.com/cedra-labs/cedra-framework.git"
+rev = "mainnet"
+subdir = "cedra-framework"
+
+[dev-dependencies]
