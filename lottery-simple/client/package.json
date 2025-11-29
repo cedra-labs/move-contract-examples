@@ -1,0 +1,30 @@
+{
+	"name": "lottery_simple",
+	"version": "1.0.0",
+	"description": "TypeScript client for lottery simple",
+	"main": "index.ts",
+	"type": "module",
+	"scripts": {
+		"start": "tsx src/index.ts",
+		"build": "tsc"
+	},
+	"dependencies": {
+		"@cedra-labs/ts-sdk": "^2.2.1"
+	},
+	"devDependencies": {
+		"@types/node": "^22.15.18",
+		"ts-node": "^10.9.2",
+		"tsconfig-paths": "^4.2.0",
+		"tsx": "^4.19.4",
+		"typescript": "^5.8.3"
+	},
+	"keywords": [
+		"cedra",
+		"digital-assets",
+		"move",
+		"blockchain",
+		"development",
+        "lottery"
+	],
+	"license": "MIT"
+}
