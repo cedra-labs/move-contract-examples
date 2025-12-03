@@ -6,6 +6,7 @@
 	"type": "module",
 	"scripts": {
 		"start": "tsx src/index.ts",
+		"deflationary": "tsx src/deflationary-example.ts",
 		"build": "tsc"
 	},
 	"dependencies": {
