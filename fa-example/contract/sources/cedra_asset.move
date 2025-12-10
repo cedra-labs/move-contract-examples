@@ -1,5 +1,5 @@
 module CedraFungible::CedraAsset {
-    use cedra_framework::fungible_asset::{Self, MintRef, TransferRef, Metadata};
+    use cedra_framework::fungible_asset::{Self, MintRef, TransferRef, BurnRef, Metadata};
     use cedra_framework::object::{Self, Object};
     use cedra_framework::primary_fungible_store;
     use std::error;
@@ -14,10 +14,11 @@ module CedraFungible::CedraAsset {
     const ASSET_NAME: vector<u8> = b"CedraAsset";
 
     #[resource_group_member(group = cedra_framework::object::ObjectGroup)]
-    /// Hold refs to control the minting, transfer of fungible assets.
+    /// Hold refs to control the minting, transfer, and burning of fungible assets.
     struct ManagedFungibleAsset has key {
         mint_ref: MintRef,
         transfer_ref: TransferRef,
+        burn_ref: BurnRef,
         admin: address,
     }
 
@@ -34,18 +35,26 @@ module CedraFungible::CedraAsset {
             utf8(b"http://example.com"),
         );
 
-        // Create mint/transfer refs to allow creator to manage the fungible asset.
+        // Create mint/transfer/burn refs to allow creator to manage the fungible asset.
         let mint_ref = fungible_asset::generate_mint_ref(constructor_ref);
         let transfer_ref = fungible_asset::generate_transfer_ref(constructor_ref);
+        let burn_ref = fungible_asset::generate_burn_ref(constructor_ref);
         let metadata_object_signer = object::generate_signer(constructor_ref);
         move_to(
             &metadata_object_signer,
             ManagedFungibleAsset { 
                 mint_ref, 
                 transfer_ref,
+                burn_ref,
                 admin: signer::address_of(admin),
             }
         );
+    }
+
+    /// Test-only function to initialize the module for testing
+    #[test_only]
+    public fun init_for_testing(admin: &signer) {
+        init_module(admin);
     }
 
     #[view]
@@ -69,6 +78,16 @@ module CedraFungible::CedraAsset {
         let asset = get_metadata();
         let fa = primary_fungible_store::withdraw(sender, asset, amount);
         primary_fungible_store::deposit(to, fa);
+    }
+
+    /// Burn tokens from the sender's account, permanently removing them from circulation
+    /// This creates a deflationary effect by reducing the total supply
+    public entry fun burn(sender: &signer, amount: u64) acquires ManagedFungibleAsset {
+        let asset = get_metadata();
+        let managed_fungible_asset = borrow_global<ManagedFungibleAsset>(object::object_address(&asset));
+        let sender_store = primary_fungible_store::ensure_primary_store_exists(signer::address_of(sender), asset);
+        // Burn tokens from the sender's store using the burn_ref
+        fungible_asset::burn_from(&managed_fungible_asset.burn_ref, sender_store, amount);
     }
 
     /// Borrow the immutable reference of the refs of `metadata`.
