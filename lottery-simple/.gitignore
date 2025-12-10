@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+client/node_modules/
+package-lock.json
+client/package-lock.json
+
+# Build outputs
+contract/build/
+contract/.cedra/
+client/dist/
+client/build/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# TypeScript
+*.tsbuildinfo
+dist/
+
+# Temporary files
+*.tmp
+*.temp
+
