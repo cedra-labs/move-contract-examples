@@ -3,7 +3,7 @@ import { Account, AccountAddress, Cedra, CedraConfig, Network, Ed25519PrivateKey
 const NETWORK = Network.TESTNET;
 const MODULE_ADDRESS = "_"; // Replace with your deployed contract address
 const MODULE_NAME = "Referral";
-const ADMIN_PRIVATE_KEY = process.env.ADMIN_PRIVATE_KEY || ""; // Set via environment variable or replace with your admin account private key
+const ADMIN_PRIVATE_KEY = process.env.ADMIN_PRIVATE_KEY || "_"; // Set via environment variable or replace with your admin account private key
 const ONE_CEDRA_IN_OCTAS = 100_000_000;
 
 const fundAccount = async (cedra: Cedra, accountAddress: AccountAddress) => {
