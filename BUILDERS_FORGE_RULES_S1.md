@@ -89,3 +89,23 @@ For any questions, join the [Cedra Builders Telegram](https://t.me/+Ba3QXd0VG9U0
 On **November 3rd**, we forge.
 
 **Forge fast, Move Smart.**
+
+---
+
+## Submissions
+
+### Game Mechanics
+
+#### Move Slayers - On-Chain RPG
+- **Location**: `/game-mechanics/move-slayers/`
+- **Description**: A fully on-chain role-playing game featuring turn-based combat, character progression, inventory management, and equipment system
+- **Features**:
+  - Player character system with stats (HP, Mana, Level, EXP)
+  - Inventory and equipment management (Swords, Shields, Armor, Potions)
+  - Turn-based combat with 6 enemy types (Boar, Wolf, Orc, Troll, Drake, Dragon)
+  - Leveling system with exponential EXP scaling
+  - Defense mechanics (armor reduces damage taken)
+  - Anti-cheat: On-chain state, deterministic combat, resource safety
+  - Gas-efficient: Optimized storage, single-pass algorithms
+- **Test Coverage**: 25 comprehensive unit tests (100% passing)
+- **Documentation**: Full README with usage examples and game mechanics guide

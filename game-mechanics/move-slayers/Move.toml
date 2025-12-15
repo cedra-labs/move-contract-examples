@@ -1,0 +1,17 @@
+[package]
+name = "move_slayers"
+version = "1.0.0"
+authors = []
+
+[addresses]
+move_slayers = "_"
+
+[dev-addresses]
+move_slayers = "0x1337"
+
+[dependencies.CedraFramework]
+git = "https://github.com/cedra-labs/cedra-framework.git"
+rev = "mainnet"
+subdir = "cedra-framework"
+
+[dev-dependencies]
