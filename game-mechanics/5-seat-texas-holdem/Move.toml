@@ -1,0 +1,15 @@
+[package]
+name = "TexasHoldem"
+version = "1.0.0"
+upgrade_policy = "compatible"
+
+[addresses]
+holdemgame = "_"
+
+[dev-addresses]
+holdemgame = "0xCAFE"
+
+[dependencies]
+CedraFramework = { git = "https://github.com/cedra-labs/cedra-framework.git", subdir = "cedra-framework", rev = "main" }
+
+[dev-dependencies]
