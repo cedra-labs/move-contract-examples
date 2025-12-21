@@ -415,8 +415,10 @@ module holdemgame::texas_holdem {
         
         let raise_amount = total_bet - max_bet;
         let seat = option::borrow(vector::borrow(&table.seats, seat_idx));
-        // Raise must be at least min_raise, OR player is going all-in
-        assert!(raise_amount >= min_raise || total_bet == seat.chip_count + current_bet, E_INVALID_RAISE);
+        let is_all_in = (total_bet == seat.chip_count + current_bet);
+        
+        // Raise must be at least min_raise, UNLESS player is going all-in (short all-in allowed)
+        assert!(raise_amount >= min_raise || is_all_in, E_INVALID_RAISE);
         
         let add_amount = total_bet - current_bet;
         assert!(seat.chip_count >= add_amount, E_INSUFFICIENT_CHIPS);
@@ -426,11 +428,16 @@ module holdemgame::texas_holdem {
             let seat_mut = option::borrow_mut(vector::borrow_mut(&mut table.seats, seat_idx));
             seat_mut.chip_count = seat_mut.chip_count - add_amount;
             pot_manager::add_bet(&mut game_mut.pot_state, hand_idx, add_amount);
-            game_mut.min_raise = raise_amount;
-            game_mut.last_aggressor = option::some(hand_idx);
             
-            // Raise reopens betting: reset acted mask for all others, mark raiser as acted
-            reset_acted_mask_except(game_mut, hand_idx);
+            // Only full raises (>= min_raise) reopen betting and update min_raise
+            if (raise_amount >= min_raise) {
+                game_mut.min_raise = raise_amount;
+                game_mut.last_aggressor = option::some(hand_idx);
+                reset_acted_mask_except(game_mut, hand_idx);
+            } else {
+                // Short all-in: just mark as acted, don't reopen betting
+                *vector::borrow_mut(&mut game_mut.has_acted_mask, hand_idx) = true;
+            };
             
             if (seat_mut.chip_count == 0) {
                 *vector::borrow_mut(&mut game_mut.player_status, hand_idx) = STATUS_ALL_IN;
