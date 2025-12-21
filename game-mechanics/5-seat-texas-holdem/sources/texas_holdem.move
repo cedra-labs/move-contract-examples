@@ -417,8 +417,17 @@ module holdemgame::texas_holdem {
         let seat = option::borrow(vector::borrow(&table.seats, seat_idx));
         let is_all_in = (total_bet == seat.chip_count + current_bet);
         
-        // Raise must be at least min_raise, UNLESS player is going all-in (short all-in allowed)
-        assert!(raise_amount >= min_raise || is_all_in, E_INVALID_RAISE);
+        // Raise validation:
+        // 1. If max_bet < min_raise (short all-in situation), allow bet completing to min_raise
+        // 2. Otherwise, raise_amount must be >= min_raise, or player is all-in
+        let is_valid_raise = if (max_bet < min_raise) {
+            // After a short all-in, allow betting up to min_raise (completing the bet)
+            total_bet >= min_raise || is_all_in
+        } else {
+            // Normal case: raise must be at least min_raise, or all-in
+            raise_amount >= min_raise || is_all_in
+        };
+        assert!(is_valid_raise, E_INVALID_RAISE);
         
         let add_amount = total_bet - current_bet;
         assert!(seat.chip_count >= add_amount, E_INSUFFICIENT_CHIPS);
@@ -596,8 +605,35 @@ module holdemgame::texas_holdem {
             i = i + 1;
         };
         
+        // Count ACTIVE players (not ALL_IN, not FOLDED)
+        let active_count = 0u64;
+        let j = 0u64;
+        while (j < num_players) {
+            if (*vector::borrow(&game_mut.player_status, j) == STATUS_ACTIVE) {
+                active_count = active_count + 1;
+            };
+            j = j + 1;
+        };
+        
+        // If 0 or 1 ACTIVE players remain, runout remaining cards and go to showdown
+        // (no more betting possible when all-in or only one player can act)
+        if (active_count <= 1) {
+            run_all_in_runout_internal(game_mut);
+            game_mut.phase = PHASE_SHOWDOWN;
+            run_showdown_internal(table);
+            return
+        };
+        
+        let game_mut = option::borrow_mut(&mut table.game);
         let dealer_hand_idx = get_dealer_hand_idx_internal(game_mut);
-        game_mut.action_on = (dealer_hand_idx + 1) % num_players;
+        
+        // Heads-up: dealer (SB) acts first on ALL postflop streets
+        // Multi-way: player left of dealer acts first
+        if (num_players == 2) {
+            game_mut.action_on = dealer_hand_idx;
+        } else {
+            game_mut.action_on = (dealer_hand_idx + 1) % num_players;
+        };
         
         // Skip non-active players
         let start = game_mut.action_on;
