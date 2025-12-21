@@ -63,6 +63,7 @@ module holdemgame::texas_holdem {
     const MAX_PLAYERS: u64 = 5;
     const ACTION_TIMEOUT_SECS: u64 = 60;
     const COMMIT_REVEAL_TIMEOUT_SECS: u64 = 120; // 2 minutes for commit/reveal phases
+    const FEE_BASIS_POINTS: u64 = 30; // 0.3% service fee (30 / 10000)
 
     // ============================================
     // DATA STRUCTURES
@@ -109,6 +110,8 @@ module holdemgame::texas_holdem {
         game: Option<Game>,
         dealer_button: u64,
         hand_number: u64,
+        fee_recipient: address,
+        total_fees_collected: u64,
     }
 
     // ============================================
@@ -120,7 +123,8 @@ module holdemgame::texas_holdem {
         small_blind: u64,
         big_blind: u64,
         min_buy_in: u64,
-        max_buy_in: u64
+        max_buy_in: u64,
+        fee_recipient: address
     ) {
         let admin_addr = signer::address_of(admin);
         assert!(!exists<Table>(admin_addr), E_TABLE_EXISTS);
@@ -139,6 +143,8 @@ module holdemgame::texas_holdem {
             game: option::none(),
             dealer_button: 0,
             hand_number: 0,
+            fee_recipient,
+            total_fees_collected: 0,
         });
     }
 
@@ -610,16 +616,30 @@ module holdemgame::texas_holdem {
         
         let game = option::borrow(&table.game);
         let players_in_hand = game.players_in_hand;
+        let fee_recipient = table.fee_recipient;
         
         let d = 0u64;
+        let total_fee = 0u64;
         while (d < vector::length(&distributions)) {
             let dist = vector::borrow(&distributions, d);
             let hand_idx = pot_manager::get_distribution_player(dist);
             let amount = pot_manager::get_distribution_amount(dist);
+            
+            // Calculate 0.3% service fee (30 basis points)
+            let fee = (amount * FEE_BASIS_POINTS) / 10000;
+            let net_amount = amount - fee;
+            total_fee = total_fee + fee;
+            
             let seat_idx = *vector::borrow(&players_in_hand, hand_idx);
             let seat = option::borrow_mut(vector::borrow_mut(&mut table.seats, seat_idx));
-            seat.chip_count = seat.chip_count + amount;
+            seat.chip_count = seat.chip_count + net_amount;
             d = d + 1;
+        };
+        
+        // Transfer fees to fee recipient
+        if (total_fee > 0) {
+            chips::transfer_chips(table.admin, fee_recipient, total_fee);
+            table.total_fees_collected = table.total_fees_collected + total_fee;
         };
         
         table.game = option::none();
@@ -648,8 +668,18 @@ module holdemgame::texas_holdem {
         let total = pot_manager::get_total_pot(&game.pot_state);
         let seat_idx = *vector::borrow(&game.players_in_hand, winner_hand_idx);
         
+        // Calculate 0.3% service fee
+        let fee = (total * FEE_BASIS_POINTS) / 10000;
+        let net_amount = total - fee;
+        
         let seat = option::borrow_mut(vector::borrow_mut(&mut table.seats, seat_idx));
-        seat.chip_count = seat.chip_count + total;
+        seat.chip_count = seat.chip_count + net_amount;
+        
+        // Transfer fees to fee recipient
+        if (fee > 0) {
+            chips::transfer_chips(table.admin, table.fee_recipient, fee);
+            table.total_fees_collected = table.total_fees_collected + fee;
+        };
         
         table.game = option::none();
     }
