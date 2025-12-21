@@ -144,13 +144,16 @@ module holdemgame::pot_manager {
     // ============================================
 
     /// Collect all current bets into pots at the end of a betting round
+    /// 
+    /// # Arguments
+    /// * `state` - The pot state
+    /// * `non_folded_players` - Bitmask of players still in hand (not folded) - includes ACTIVE and ALL_IN
     public fun collect_bets(
         state: &mut PotState,
-        active_players: &vector<bool>,
-        _all_in_players: &vector<bool>
+        non_folded_players: &vector<bool>,
     ) {
         let num_players = vector::length(&state.current_bets);
-        let bet_levels = get_sorted_unique_bets(&state.current_bets, active_players);
+        let bet_levels = get_sorted_unique_bets(&state.current_bets, non_folded_players);
         
         if (vector::length(&bet_levels) == 0) {
             reset_current_bets(state);
@@ -171,11 +174,12 @@ module holdemgame::pot_manager {
                 let p = 0u64;
                 while (p < num_players) {
                     let player_bet = *vector::borrow(&state.current_bets, p);
-                    let is_active = *vector::borrow(active_players, p);
+                    let is_non_folded = *vector::borrow(non_folded_players, p);
                     
                     if (player_bet >= current_level) {
                         pot_amount = pot_amount + increment;
-                        if (is_active) {
+                        // Player is eligible if they haven't folded (could be ACTIVE or ALL_IN)
+                        if (is_non_folded) {
                             vector::push_back(&mut eligible, p);
                         };
                     };

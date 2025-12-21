@@ -40,6 +40,7 @@ module holdemgame::texas_holdem {
     const E_BUY_IN_TOO_LOW: u64 = 18;
     const E_BUY_IN_TOO_HIGH: u64 = 19;
     const E_ALREADY_REVEALED: u64 = 20;
+    const E_NO_TIMEOUT: u64 = 21;
 
     // ============================================
     // GAME STATE CONSTANTS
@@ -61,6 +62,7 @@ module holdemgame::texas_holdem {
 
     const MAX_PLAYERS: u64 = 5;
     const ACTION_TIMEOUT_SECS: u64 = 60;
+    const COMMIT_REVEAL_TIMEOUT_SECS: u64 = 120; // 2 minutes for commit/reveal phases
 
     // ============================================
     // DATA STRUCTURES
@@ -95,6 +97,9 @@ module holdemgame::texas_holdem {
         last_aggressor: Option<u64>,
         commits: vector<vector<u8>>,
         secrets: vector<vector<u8>>,
+        // Timeout deadlines
+        commit_deadline: u64,
+        reveal_deadline: u64,
     }
 
     struct Table has key {
@@ -223,6 +228,8 @@ module holdemgame::texas_holdem {
             last_aggressor: option::none(),
             commits,
             secrets,
+            commit_deadline: timestamp::now_seconds() + COMMIT_REVEAL_TIMEOUT_SECS,
+            reveal_deadline: 0, // Set when all commits are in
         });
     }
 
@@ -251,6 +258,7 @@ module holdemgame::texas_holdem {
         
         if (all_committed_internal(game_mut)) {
             game_mut.phase = PHASE_REVEAL;
+            game_mut.reveal_deadline = timestamp::now_seconds() + COMMIT_REVEAL_TIMEOUT_SECS;
         };
     }
 
@@ -379,8 +387,14 @@ module holdemgame::texas_holdem {
         let max_bet = pot_manager::get_max_current_bet(&game.pot_state);
         let min_raise = game.min_raise;
         
+        // Underflow protection: total_bet must be >= current_bet (what player already has in)
+        assert!(total_bet >= current_bet, E_INVALID_RAISE);
+        // A raise must exceed the current max bet
+        assert!(total_bet > max_bet, E_INVALID_RAISE);
+        
         let raise_amount = total_bet - max_bet;
         let seat = option::borrow(vector::borrow(&table.seats, seat_idx));
+        // Raise must be at least min_raise, OR player is going all-in
         assert!(raise_amount >= min_raise || total_bet == seat.chip_count + current_bet, E_INVALID_RAISE);
         
         let add_amount = total_bet - current_bet;
@@ -416,6 +430,8 @@ module holdemgame::texas_holdem {
         let all_in_amount = seat.chip_count;
         
         let max_bet = pot_manager::get_max_current_bet(&game.pot_state);
+        let current_bet = pot_manager::get_current_bet(&game.pot_state, hand_idx);
+        let min_raise = game.min_raise;
         
         {
             let game_mut = option::borrow_mut(&mut table.game);
@@ -424,13 +440,76 @@ module holdemgame::texas_holdem {
             pot_manager::add_bet(&mut game_mut.pot_state, hand_idx, all_in_amount);
             *vector::borrow_mut(&mut game_mut.player_status, hand_idx) = STATUS_ALL_IN;
             
-            let current_bet = pot_manager::get_current_bet(&game_mut.pot_state, hand_idx);
-            if (current_bet > max_bet) {
+            // Calculate the new bet total after adding all_in_amount
+            let new_total_bet = current_bet + all_in_amount;
+            
+            // Only set last_aggressor if this constitutes a valid raise
+            // (new total bet exceeds max_bet by at least min_raise)
+            if (new_total_bet > max_bet && (new_total_bet - max_bet) >= min_raise) {
                 game_mut.last_aggressor = option::some(hand_idx);
+                game_mut.min_raise = new_total_bet - max_bet;
             };
+            // Short all-ins (< min_raise) don't reopen betting
         };
         
         advance_action_internal(table);
+    }
+
+    /// Handle timeouts for commit/reveal/action phases
+    /// 
+    /// Anyone can call this to enforce timeouts. Effects depend on phase:
+    /// - COMMIT/REVEAL: Abort hand, return chips, mark non-compliers as sitting out
+    /// - PREFLOP-RIVER: Auto-fold the timed-out player
+    public entry fun handle_timeout(table_addr: address) acquires Table {
+        assert!(exists<Table>(table_addr), E_TABLE_NOT_FOUND);
+        let table = borrow_global_mut<Table>(table_addr);
+        assert!(option::is_some(&table.game), E_NO_GAME);
+        
+        let now = timestamp::now_seconds();
+        let game = option::borrow(&table.game);
+        let phase = game.phase;
+        
+        if (phase == PHASE_COMMIT) {
+            // Check commit timeout
+            assert!(now > game.commit_deadline, E_NO_TIMEOUT);
+            // Mark all players who didn't commit as sitting out
+            let i = 0u64;
+            while (i < vector::length(&game.commits)) {
+                if (vector::is_empty(vector::borrow(&game.commits, i))) {
+                    let seat_idx = *vector::borrow(&game.players_in_hand, i);
+                    let seat = option::borrow_mut(vector::borrow_mut(&mut table.seats, seat_idx));
+                    seat.is_sitting_out = true;
+                };
+                i = i + 1;
+            };
+            // Abort the hand
+            table.game = option::none();
+        } else if (phase == PHASE_REVEAL) {
+            // Check reveal timeout
+            assert!(now > game.reveal_deadline, E_NO_TIMEOUT);
+            // Mark all players who didn't reveal as sitting out
+            let i = 0u64;
+            while (i < vector::length(&game.secrets)) {
+                if (vector::is_empty(vector::borrow(&game.secrets, i))) {
+                    let seat_idx = *vector::borrow(&game.players_in_hand, i);
+                    let seat = option::borrow_mut(vector::borrow_mut(&mut table.seats, seat_idx));
+                    seat.is_sitting_out = true;
+                };
+                i = i + 1;
+            };
+            // Abort the hand
+            table.game = option::none();
+        } else if (phase >= PHASE_PREFLOP && phase <= PHASE_RIVER) {
+            // Check action timeout
+            assert!(now > game.action_deadline, E_NO_TIMEOUT);
+            // Auto-fold the player who timed out
+            let action_on = game.action_on;
+            {
+                let game_mut = option::borrow_mut(&mut table.game);
+                *vector::borrow_mut(&mut game_mut.player_status, action_on) = STATUS_FOLDED;
+            };
+            advance_action_internal(table);
+        };
     }
 
     // ============================================
@@ -459,9 +538,8 @@ module holdemgame::texas_holdem {
     fun collect_and_advance_phase(table: &mut Table) {
         {
             let game_mut = option::borrow_mut(&mut table.game);
-            let active = get_active_mask_internal(game_mut);
-            let all_in = get_all_in_mask_internal(game_mut);
-            pot_manager::collect_bets(&mut game_mut.pot_state, &active, &all_in);
+            let non_folded = get_non_folded_mask_internal(game_mut);
+            pot_manager::collect_bets(&mut game_mut.pot_state, &non_folded);
         };
         advance_phase_internal(table);
     }
@@ -550,9 +628,8 @@ module holdemgame::texas_holdem {
     fun end_hand_fold_internal(table: &mut Table) {
         {
             let game_mut = option::borrow_mut(&mut table.game);
-            let active = get_active_mask_internal(game_mut);
-            let all_in = get_all_in_mask_internal(game_mut);
-            pot_manager::collect_bets(&mut game_mut.pot_state, &active, &all_in);
+            let non_folded = get_non_folded_mask_internal(game_mut);
+            pot_manager::collect_bets(&mut game_mut.pot_state, &non_folded);
         };
         
         let game = option::borrow(&table.game);
@@ -679,7 +756,13 @@ module holdemgame::texas_holdem {
         let n = 52u64;
         while (n > 1) {
             hash_state = hash::sha3_256(hash_state);
-            let rand = (*vector::borrow(&hash_state, 0) as u64);
+            // Use 8 bytes for better entropy distribution (u64 instead of u8)
+            let rand: u64 = 0;
+            let byte_idx = 0u64;
+            while (byte_idx < 8) {
+                rand = (rand << 8) | (*vector::borrow(&hash_state, byte_idx) as u64);
+                byte_idx = byte_idx + 1;
+            };
             let j = rand % n;
             n = n - 1;
             vector::swap(&mut deck, n, j);

@@ -14,6 +14,9 @@ module holdemgame::chips {
     use cedra_framework::cedra_coin;
     use cedra_framework::coin;
 
+    // Friend modules that can access internal chip functions
+    friend holdemgame::texas_holdem;
+
     // ============================================
     // ERROR CODES
     // ============================================
@@ -183,7 +186,8 @@ module holdemgame::chips {
     /// 
     /// Used by the game contract for pot payouts.
     /// This bypasses normal transfer restrictions.
-    public fun transfer_chips(
+    /// Restricted to friend modules only.
+    public(friend) fun transfer_chips(
         from: address,
         to: address,
         amount: u64
@@ -206,7 +210,8 @@ module holdemgame::chips {
 
     /// Deduct chips from a player (for betting)
     /// Returns the withdrawn chips as a FungibleAsset
-    public fun deduct_chips_for_bet(
+    /// Restricted to friend modules only.
+    public(friend) fun deduct_chips_for_bet(
         from: address,
         amount: u64
     ): fungible_asset::FungibleAsset acquires ChipManager {
@@ -219,7 +224,8 @@ module holdemgame::chips {
 
     /// Award chips to a player (pot payout)
     /// Takes FungibleAsset and deposits to player
-    public fun award_chips(
+    /// Restricted to friend modules only.
+    public(friend) fun award_chips(
         to: address,
         chips: fungible_asset::FungibleAsset
     ) acquires ChipManager {
