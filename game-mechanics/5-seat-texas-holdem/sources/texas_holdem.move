@@ -206,6 +206,46 @@ module holdemgame::texas_holdem {
         chips::transfer_chips(table_addr, player_addr, seat.chip_count);
     }
 
+    /// Close and delete a table (admin only)
+    /// 
+    /// Returns chips to any seated players and removes the Table resource.
+    /// Cannot be called while a hand is in progress.
+    public entry fun close_table(admin: &signer, table_addr: address) acquires Table {
+        assert!(exists<Table>(table_addr), E_TABLE_NOT_FOUND);
+        
+        let admin_addr = signer::address_of(admin);
+        let table = borrow_global<Table>(table_addr);
+        assert!(table.admin == admin_addr, E_NOT_ADMIN);
+        assert!(option::is_none(&table.game), E_GAME_IN_PROGRESS);
+        
+        // Move out and destroy the table
+        let Table {
+            config: _,
+            admin: _,
+            seats,
+            game: _,
+            dealer_button: _,
+            hand_number: _,
+            fee_recipient: _,
+            total_fees_collected: _,
+            next_bb_seat: _,
+            missed_blinds: _,
+        } = move_from<Table>(table_addr);
+        
+        // Return chips to any seated players
+        let i = 0u64;
+        while (i < vector::length(&seats)) {
+            let seat_opt = vector::borrow(&seats, i);
+            if (option::is_some(seat_opt)) {
+                let seat = option::borrow(seat_opt);
+                if (seat.chip_count > 0) {
+                    chips::transfer_chips(table_addr, seat.player, seat.chip_count);
+                };
+            };
+            i = i + 1;
+        };
+    }
+
     // ============================================
     // HAND LIFECYCLE
     // ============================================
