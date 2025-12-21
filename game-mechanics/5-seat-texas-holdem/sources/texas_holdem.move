@@ -1,357 +1,839 @@
-/// 5-Seat Texas Hold'em Game Module
+/// Casino-Grade 5-Seat Texas Hold'em
 /// 
-/// A fully on-chain, multi-player card game demonstrating commit-reveal randomness,
-/// resource-safe state management, and parallel execution on Cedra.
-/// 
-/// This module implements a simplified Texas Hold'em-style card game where:
-/// - 5 players commit to secrets, then reveal to seed a deterministic shuffle
-/// - Cards are dealt (2 hole cards per player + 5 community cards)
-/// - A simple scoring function determines winners
-/// - No wagering or betting is involved
+/// A fully on-chain Texas Hold'em poker game with:
+/// - Configurable blinds (small/big)
+/// - 4 betting rounds (pre-flop, flop, turn, river)
+/// - All player actions (fold, check, call, raise, all-in)
+/// - Side pots and pot distribution
+/// - Full poker hand evaluation
+/// - Commit-reveal card shuffling
 module holdemgame::texas_holdem {
     use std::vector;
     use std::signer;
+    use std::option::{Self, Option};
     use cedra_std::hash;
+    use cedra_framework::timestamp;
+    use holdemgame::chips;
+    use holdemgame::hand_eval;
+    use holdemgame::pot_manager::{Self, PotState};
 
     // ============================================
     // ERROR CODES
     // ============================================
     
-    /// Caller is not the admin
     const E_NOT_ADMIN: u64 = 1;
-    /// Game has already been initialized
-    const E_GAME_ALREADY_INITIALIZED: u64 = 2;
-    /// Game has not been initialized
-    const E_GAME_NOT_INITIALIZED: u64 = 3;
-    /// Player has already joined the game
-    const E_ALREADY_JOINED: u64 = 4;
-    /// Game is full (5 players max)
-    const E_GAME_FULL: u64 = 5;
-    /// Caller is not a registered player
-    const E_NOT_A_PLAYER: u64 = 6;
-    /// Player has already revealed their secret
-    const E_ALREADY_REVEALED: u64 = 7;
-    /// Secret does not match the commitment hash
-    const E_INVALID_SECRET: u64 = 8;
-    /// Operation not allowed in current game phase
-    const E_WRONG_PHASE: u64 = 9;
-    /// Commitment hash must be 32 bytes
-    const E_INVALID_COMMIT_LENGTH: u64 = 10;
+    const E_TABLE_EXISTS: u64 = 2;
+    const E_TABLE_NOT_FOUND: u64 = 3;
+    const E_SEAT_TAKEN: u64 = 4;
+    const E_NOT_AT_TABLE: u64 = 5;
+    const E_GAME_IN_PROGRESS: u64 = 6;
+    const E_NO_GAME: u64 = 7;
+    const E_NOT_YOUR_TURN: u64 = 8;
+    const E_INVALID_ACTION: u64 = 9;
+    const E_INSUFFICIENT_CHIPS: u64 = 10;
+    const E_INVALID_RAISE: u64 = 11;
+    const E_NOT_ENOUGH_PLAYERS: u64 = 12;
+    const E_ALREADY_COMMITTED: u64 = 13;
+    const E_INVALID_SECRET: u64 = 15;
+    const E_WRONG_PHASE: u64 = 16;
+    const E_TABLE_FULL: u64 = 17;
+    const E_BUY_IN_TOO_LOW: u64 = 18;
+    const E_BUY_IN_TOO_HIGH: u64 = 19;
+    const E_ALREADY_REVEALED: u64 = 20;
 
     // ============================================
     // GAME STATE CONSTANTS
     // ============================================
     
-    /// Game is accepting new players
-    const STATE_JOINING: u8 = 0;
-    /// All players have joined, waiting for reveals
-    const STATE_REVEALING: u8 = 1;
-    /// Cards have been dealt, game is complete
-    const STATE_DEALT: u8 = 2;
+    const PHASE_WAITING: u8 = 0;
+    const PHASE_COMMIT: u8 = 1;
+    const PHASE_REVEAL: u8 = 2;
+    const PHASE_PREFLOP: u8 = 3;
+    const PHASE_FLOP: u8 = 4;
+    const PHASE_TURN: u8 = 5;
+    const PHASE_RIVER: u8 = 6;
+    const PHASE_SHOWDOWN: u8 = 7;
 
-    // ============================================
-    // GAME CONFIGURATION
-    // ============================================
-    
-    /// Maximum number of players
+    const STATUS_WAITING: u8 = 0;
+    const STATUS_ACTIVE: u8 = 1;
+    const STATUS_FOLDED: u8 = 2;
+    const STATUS_ALL_IN: u8 = 3;
+
     const MAX_PLAYERS: u64 = 5;
-    /// Number of hole cards per player
-    const CARDS_PER_PLAYER: u64 = 2;
-    /// Number of community cards
-    const COMMUNITY_CARDS: u64 = 5;
-    /// Total cards in deck
-    const DECK_SIZE: u64 = 52;
+    const ACTION_TIMEOUT_SECS: u64 = 60;
 
     // ============================================
     // DATA STRUCTURES
     // ============================================
 
-    /// The main game resource stored at the admin's address
-    /// 
-    /// Card representation:
-    /// - Cards are bytes 0-51
-    /// - Rank = card % 13 (0=2, 1=3, ..., 12=Ace)
-    /// - Suit = card / 13 (0=Clubs, 1=Diamonds, 2=Hearts, 3=Spades)
-    struct Game has key {
-        /// Addresses of joined players (max 5)
-        players: vector<address>,
-        /// SHA3-256 hashes of player secrets (commitments)
-        commits: vector<vector<u8>>,
-        /// Revealed secrets (populated during reveal phase)
-        secrets: vector<vector<u8>>,
-        /// The shuffled deck (52 cards, each 0-51)
-        deck: vector<u8>,
-        /// Hole cards for each player (2 cards each)
+    struct TableConfig has store, copy, drop {
+        small_blind: u64,
+        big_blind: u64,
+        min_buy_in: u64,
+        max_buy_in: u64,
+    }
+
+    struct Seat has store, copy, drop {
+        player: address,
+        chip_count: u64,
+        is_sitting_out: bool,
+    }
+
+    struct Game has store, drop {
+        phase: u8,
         hole_cards: vector<vector<u8>>,
-        /// The 5 community cards
         community_cards: vector<u8>,
-        /// Current game state (STATE_JOINING, STATE_REVEALING, STATE_DEALT)
-        state: u8,
-        /// Admin address (for reset permissions)
+        deck: vector<u8>,
+        deck_index: u64,
+        player_status: vector<u8>,
+        pot_state: PotState,
+        players_in_hand: vector<u64>,
+        action_on: u64,
+        action_deadline: u64,
+        dealer_position: u64,
+        min_raise: u64,
+        last_aggressor: Option<u64>,
+        commits: vector<vector<u8>>,
+        secrets: vector<vector<u8>>,
+    }
+
+    struct Table has key {
+        config: TableConfig,
         admin: address,
+        seats: vector<Option<Seat>>,
+        game: Option<Game>,
+        dealer_button: u64,
+        hand_number: u64,
     }
 
     // ============================================
-    // ADMIN FUNCTIONS
+    // TABLE MANAGEMENT
     // ============================================
 
-    /// Initialize a new game
-    /// 
-    /// This must be called once by the admin before players can join.
-    /// Creates the Game resource under the admin's address.
-    public entry fun init(admin: &signer) {
+    public entry fun create_table(
+        admin: &signer,
+        small_blind: u64,
+        big_blind: u64,
+        min_buy_in: u64,
+        max_buy_in: u64
+    ) {
         let admin_addr = signer::address_of(admin);
-        assert!(!exists<Game>(admin_addr), E_GAME_ALREADY_INITIALIZED);
+        assert!(!exists<Table>(admin_addr), E_TABLE_EXISTS);
         
-        move_to(admin, Game {
-            players: vector::empty(),
-            commits: vector::empty(),
-            secrets: vector::empty(),
-            deck: vector::empty(),
-            hole_cards: vector::empty(),
-            community_cards: vector::empty(),
-            state: STATE_JOINING,
+        let seats = vector::empty<Option<Seat>>();
+        let i = 0u64;
+        while (i < MAX_PLAYERS) {
+            vector::push_back(&mut seats, option::none());
+            i = i + 1;
+        };
+        
+        move_to(admin, Table {
+            config: TableConfig { small_blind, big_blind, min_buy_in, max_buy_in },
             admin: admin_addr,
+            seats,
+            game: option::none(),
+            dealer_button: 0,
+            hand_number: 0,
         });
     }
 
-    /// Reset the game for a new round
-    /// 
-    /// Only the admin can call this. Clears all state and returns to JOINING phase.
-    /// 
-    /// # Arguments
-    /// * `caller` - The signer attempting to reset (must be admin)
-    /// * `game_addr` - Address where the Game resource is stored
-    public entry fun reset(caller: &signer, game_addr: address) acquires Game {
-        let caller_addr = signer::address_of(caller);
-        assert!(exists<Game>(game_addr), E_GAME_NOT_INITIALIZED);
+    public entry fun join_table(
+        player: &signer,
+        table_addr: address,
+        seat_idx: u64,
+        buy_in_chips: u64
+    ) acquires Table {
+        assert!(exists<Table>(table_addr), E_TABLE_NOT_FOUND);
+        let table = borrow_global_mut<Table>(table_addr);
         
-        let game = borrow_global_mut<Game>(game_addr);
-        assert!(game.admin == caller_addr, E_NOT_ADMIN);
+        assert!(seat_idx < MAX_PLAYERS, E_TABLE_FULL);
+        assert!(option::is_none(vector::borrow(&table.seats, seat_idx)), E_SEAT_TAKEN);
+        assert!(buy_in_chips >= table.config.min_buy_in, E_BUY_IN_TOO_LOW);
+        assert!(buy_in_chips <= table.config.max_buy_in, E_BUY_IN_TOO_HIGH);
         
-        game.players = vector::empty();
-        game.commits = vector::empty();
-        game.secrets = vector::empty();
-        game.deck = vector::empty();
-        game.hole_cards = vector::empty();
-        game.community_cards = vector::empty();
-        game.state = STATE_JOINING;
+        let player_addr = signer::address_of(player);
+        let player_balance = chips::balance(player_addr);
+        assert!(player_balance >= buy_in_chips, E_INSUFFICIENT_CHIPS);
+        
+        chips::transfer_chips(player_addr, table_addr, buy_in_chips);
+        
+        *vector::borrow_mut(&mut table.seats, seat_idx) = option::some(Seat {
+            player: player_addr,
+            chip_count: buy_in_chips,
+            is_sitting_out: false,
+        });
+    }
+
+    public entry fun leave_table(player: &signer, table_addr: address) acquires Table {
+        assert!(exists<Table>(table_addr), E_TABLE_NOT_FOUND);
+        let table = borrow_global_mut<Table>(table_addr);
+        assert!(option::is_none(&table.game), E_GAME_IN_PROGRESS);
+        
+        let player_addr = signer::address_of(player);
+        let seat_idx = find_player_seat_in_table(table, player_addr);
+        assert!(seat_idx < MAX_PLAYERS, E_NOT_AT_TABLE);
+        
+        let seat = option::extract(vector::borrow_mut(&mut table.seats, seat_idx));
+        chips::transfer_chips(table_addr, player_addr, seat.chip_count);
     }
 
     // ============================================
-    // PLAYER FUNCTIONS
+    // HAND LIFECYCLE
     // ============================================
 
-    /// Join the game with a commitment hash
-    /// 
-    /// Players must submit the SHA3-256 hash of a secret value they choose off-chain.
-    /// Once 5 players have joined, the game transitions to the reveal phase.
-    /// 
-    /// # Arguments
-    /// * `player` - The player's signer
-    /// * `game_addr` - Address where the Game resource is stored (admin's address)
-    /// * `hashed_commit` - 32-byte SHA3-256 hash of the player's secret
-    public entry fun join_game(
-        player: &signer, 
-        game_addr: address,
-        hashed_commit: vector<u8>
-    ) acquires Game {
+    public entry fun start_hand(table_addr: address) acquires Table {
+        assert!(exists<Table>(table_addr), E_TABLE_NOT_FOUND);
+        let table = borrow_global_mut<Table>(table_addr);
+        assert!(option::is_none(&table.game), E_GAME_IN_PROGRESS);
+        
+        let active_seats = get_active_seat_indices_internal(table);
+        assert!(vector::length(&active_seats) >= 2, E_NOT_ENOUGH_PLAYERS);
+        
+        table.dealer_button = next_active_seat_internal(table, table.dealer_button);
+        table.hand_number = table.hand_number + 1;
+        
+        let num_players = vector::length(&active_seats);
+        let player_status = vector::empty<u8>();
+        let commits = vector::empty<vector<u8>>();
+        let secrets = vector::empty<vector<u8>>();
+        let hole_cards = vector::empty<vector<u8>>();
+        
+        let i = 0u64;
+        while (i < num_players) {
+            vector::push_back(&mut player_status, STATUS_ACTIVE);
+            vector::push_back(&mut commits, vector::empty());
+            vector::push_back(&mut secrets, vector::empty());
+            vector::push_back(&mut hole_cards, vector::empty());
+            i = i + 1;
+        };
+        
+        table.game = option::some(Game {
+            phase: PHASE_COMMIT,
+            hole_cards,
+            community_cards: vector::empty(),
+            deck: vector::empty(),
+            deck_index: 0,
+            player_status,
+            pot_state: pot_manager::new(num_players),
+            players_in_hand: active_seats,
+            action_on: 0,
+            action_deadline: 0,
+            dealer_position: table.dealer_button,
+            min_raise: table.config.big_blind,
+            last_aggressor: option::none(),
+            commits,
+            secrets,
+        });
+    }
+
+    public entry fun submit_commit(
+        player: &signer,
+        table_addr: address,
+        commit_hash: vector<u8>
+    ) acquires Table {
+        assert!(exists<Table>(table_addr), E_TABLE_NOT_FOUND);
+        let table = borrow_global_mut<Table>(table_addr);
+        assert!(option::is_some(&table.game), E_NO_GAME);
+        
         let player_addr = signer::address_of(player);
-        assert!(exists<Game>(game_addr), E_GAME_NOT_INITIALIZED);
         
-        let game = borrow_global_mut<Game>(game_addr);
+        // Find player's hand index using seats directly
+        let game = option::borrow(&table.game);
+        assert!(game.phase == PHASE_COMMIT, E_WRONG_PHASE);
+        let hand_idx = find_player_hand_idx(&game.players_in_hand, &table.seats, player_addr);
         
-        assert!(game.state == STATE_JOINING, E_WRONG_PHASE);
-        assert!(vector::length(&game.players) < MAX_PLAYERS, E_GAME_FULL);
-        assert!(!vector::contains(&game.players, &player_addr), E_ALREADY_JOINED);
-        assert!(vector::length(&hashed_commit) == 32, E_INVALID_COMMIT_LENGTH);
+        // Check not already committed  
+        assert!(vector::is_empty(vector::borrow(&game.commits, hand_idx)), E_ALREADY_COMMITTED);
         
-        vector::push_back(&mut game.players, player_addr);
-        vector::push_back(&mut game.commits, hashed_commit);
+        // Now mutate
+        let game_mut = option::borrow_mut(&mut table.game);
+        *vector::borrow_mut(&mut game_mut.commits, hand_idx) = commit_hash;
         
-        // Initialize empty secret slot for this player
-        vector::push_back(&mut game.secrets, vector::empty());
-        
-        // Transition to reveal phase when full
-        if (vector::length(&game.players) == MAX_PLAYERS) {
-            game.state = STATE_REVEALING;
+        if (all_committed_internal(game_mut)) {
+            game_mut.phase = PHASE_REVEAL;
         };
     }
 
-    /// Reveal your secret
-    /// 
-    /// The contract verifies that sha3_256(secret) matches the stored commitment.
-    /// When all 5 players have revealed, the deck is shuffled and cards are dealt.
-    /// 
-    /// # Arguments
-    /// * `player` - The player's signer
-    /// * `game_addr` - Address where the Game resource is stored
-    /// * `secret` - The original secret value (pre-image of the commitment)
     public entry fun reveal_secret(
         player: &signer,
-        game_addr: address,
+        table_addr: address,
         secret: vector<u8>
-    ) acquires Game {
+    ) acquires Table {
+        assert!(exists<Table>(table_addr), E_TABLE_NOT_FOUND);
+        let table = borrow_global_mut<Table>(table_addr);
+        assert!(option::is_some(&table.game), E_NO_GAME);
+        
         let player_addr = signer::address_of(player);
-        assert!(exists<Game>(game_addr), E_GAME_NOT_INITIALIZED);
         
-        let game = borrow_global_mut<Game>(game_addr);
+        // Read-only access first
+        let game = option::borrow(&table.game);
+        assert!(game.phase == PHASE_REVEAL, E_WRONG_PHASE);
+        let hand_idx = find_player_hand_idx(&game.players_in_hand, &table.seats, player_addr);
         
-        assert!(game.state == STATE_REVEALING, E_WRONG_PHASE);
+        assert!(vector::is_empty(vector::borrow(&game.secrets, hand_idx)), E_ALREADY_REVEALED);
         
-        // Find player index
-        let (found, idx) = vector::index_of(&game.players, &player_addr);
-        assert!(found, E_NOT_A_PLAYER);
-        
-        // Check not already revealed
-        let existing_secret = vector::borrow(&game.secrets, idx);
-        assert!(vector::is_empty(existing_secret), E_ALREADY_REVEALED);
-        
-        // Verify commitment
         let computed_hash = hash::sha3_256(secret);
-        let stored_commit = vector::borrow(&game.commits, idx);
-        assert!(computed_hash == *stored_commit, E_INVALID_SECRET);
+        let stored_commit = *vector::borrow(&game.commits, hand_idx);
+        assert!(computed_hash == stored_commit, E_INVALID_SECRET);
         
-        // Store the revealed secret
-        *vector::borrow_mut(&mut game.secrets, idx) = secret;
+        let all_revealed_flag: bool;
+        {
+            let game_mut = option::borrow_mut(&mut table.game);
+            *vector::borrow_mut(&mut game_mut.secrets, hand_idx) = secret;
+            all_revealed_flag = all_revealed_internal(game_mut);
+        };
         
-        // Check if all revealed, then shuffle and deal
-        if (all_secrets_revealed(game)) {
-            shuffle_and_deal(game);
-            game.state = STATE_DEALT;
+        if (all_revealed_flag) {
+            let game_mut = option::borrow_mut(&mut table.game);
+            shuffle_deck_internal(game_mut);
+            deal_hole_cards_internal(game_mut);
+            
+            let bb_amount = table.config.big_blind;
+            let sb_amount = table.config.small_blind;
+            post_blinds_internal(game_mut, &mut table.seats, sb_amount, bb_amount);
+            
+            game_mut.phase = PHASE_PREFLOP;
+            let num_players = vector::length(&game_mut.players_in_hand);
+            let bb_hand_idx = get_big_blind_hand_idx_internal(game_mut);
+            game_mut.action_on = (bb_hand_idx + 1) % num_players;
+            game_mut.action_deadline = timestamp::now_seconds() + ACTION_TIMEOUT_SECS;
         };
     }
 
     // ============================================
-    // INTERNAL FUNCTIONS
+    // PLAYER ACTIONS
     // ============================================
 
-    /// Check if all players have revealed their secrets
-    fun all_secrets_revealed(game: &Game): bool {
-        let len = vector::length(&game.secrets);
-        if (len != MAX_PLAYERS) { return false };
+    public entry fun fold(player: &signer, table_addr: address) acquires Table {
+        assert!(exists<Table>(table_addr), E_TABLE_NOT_FOUND);
+        let table = borrow_global_mut<Table>(table_addr);
+        assert!(option::is_some(&table.game), E_NO_GAME);
         
-        let i = 0;
+        let player_addr = signer::address_of(player);
+        let game = option::borrow(&table.game);
+        check_action_allowed_internal(game, &table.seats, player_addr);
+        let hand_idx = find_player_hand_idx(&game.players_in_hand, &table.seats, player_addr);
+        
+        let game_mut = option::borrow_mut(&mut table.game);
+        *vector::borrow_mut(&mut game_mut.player_status, hand_idx) = STATUS_FOLDED;
+        
+        advance_action_internal(table);
+    }
+
+    public entry fun check(player: &signer, table_addr: address) acquires Table {
+        assert!(exists<Table>(table_addr), E_TABLE_NOT_FOUND);
+        let table = borrow_global_mut<Table>(table_addr);
+        assert!(option::is_some(&table.game), E_NO_GAME);
+        
+        let player_addr = signer::address_of(player);
+        let game = option::borrow(&table.game);
+        check_action_allowed_internal(game, &table.seats, player_addr);
+        let hand_idx = find_player_hand_idx(&game.players_in_hand, &table.seats, player_addr);
+        
+        let call_amount = pot_manager::get_call_amount(&game.pot_state, hand_idx);
+        assert!(call_amount == 0, E_INVALID_ACTION);
+        
+        advance_action_internal(table);
+    }
+
+    public entry fun call(player: &signer, table_addr: address) acquires Table {
+        assert!(exists<Table>(table_addr), E_TABLE_NOT_FOUND);
+        let table = borrow_global_mut<Table>(table_addr);
+        assert!(option::is_some(&table.game), E_NO_GAME);
+        
+        let player_addr = signer::address_of(player);
+        let game = option::borrow(&table.game);
+        check_action_allowed_internal(game, &table.seats, player_addr);
+        let hand_idx = find_player_hand_idx(&game.players_in_hand, &table.seats, player_addr);
+        let seat_idx = *vector::borrow(&game.players_in_hand, hand_idx);
+        
+        let call_amount = pot_manager::get_call_amount(&game.pot_state, hand_idx);
+        let seat = option::borrow(vector::borrow(&table.seats, seat_idx));
+        let actual_amount = if (call_amount > seat.chip_count) { seat.chip_count } else { call_amount };
+        
+        {
+            let game_mut = option::borrow_mut(&mut table.game);
+            let seat_mut = option::borrow_mut(vector::borrow_mut(&mut table.seats, seat_idx));
+            seat_mut.chip_count = seat_mut.chip_count - actual_amount;
+            pot_manager::add_bet(&mut game_mut.pot_state, hand_idx, actual_amount);
+            if (seat_mut.chip_count == 0) {
+                *vector::borrow_mut(&mut game_mut.player_status, hand_idx) = STATUS_ALL_IN;
+            };
+        };
+        
+        advance_action_internal(table);
+    }
+
+    public entry fun raise_to(player: &signer, table_addr: address, total_bet: u64) acquires Table {
+        assert!(exists<Table>(table_addr), E_TABLE_NOT_FOUND);
+        let table = borrow_global_mut<Table>(table_addr);
+        assert!(option::is_some(&table.game), E_NO_GAME);
+        
+        let player_addr = signer::address_of(player);
+        let game = option::borrow(&table.game);
+        check_action_allowed_internal(game, &table.seats, player_addr);
+        let hand_idx = find_player_hand_idx(&game.players_in_hand, &table.seats, player_addr);
+        let seat_idx = *vector::borrow(&game.players_in_hand, hand_idx);
+        
+        let current_bet = pot_manager::get_current_bet(&game.pot_state, hand_idx);
+        let max_bet = pot_manager::get_max_current_bet(&game.pot_state);
+        let min_raise = game.min_raise;
+        
+        let raise_amount = total_bet - max_bet;
+        let seat = option::borrow(vector::borrow(&table.seats, seat_idx));
+        assert!(raise_amount >= min_raise || total_bet == seat.chip_count + current_bet, E_INVALID_RAISE);
+        
+        let add_amount = total_bet - current_bet;
+        assert!(seat.chip_count >= add_amount, E_INSUFFICIENT_CHIPS);
+        
+        {
+            let game_mut = option::borrow_mut(&mut table.game);
+            let seat_mut = option::borrow_mut(vector::borrow_mut(&mut table.seats, seat_idx));
+            seat_mut.chip_count = seat_mut.chip_count - add_amount;
+            pot_manager::add_bet(&mut game_mut.pot_state, hand_idx, add_amount);
+            game_mut.min_raise = raise_amount;
+            game_mut.last_aggressor = option::some(hand_idx);
+            if (seat_mut.chip_count == 0) {
+                *vector::borrow_mut(&mut game_mut.player_status, hand_idx) = STATUS_ALL_IN;
+            };
+        };
+        
+        advance_action_internal(table);
+    }
+
+    public entry fun all_in(player: &signer, table_addr: address) acquires Table {
+        assert!(exists<Table>(table_addr), E_TABLE_NOT_FOUND);
+        let table = borrow_global_mut<Table>(table_addr);
+        assert!(option::is_some(&table.game), E_NO_GAME);
+        
+        let player_addr = signer::address_of(player);
+        let game = option::borrow(&table.game);
+        check_action_allowed_internal(game, &table.seats, player_addr);
+        let hand_idx = find_player_hand_idx(&game.players_in_hand, &table.seats, player_addr);
+        let seat_idx = *vector::borrow(&game.players_in_hand, hand_idx);
+        
+        let seat = option::borrow(vector::borrow(&table.seats, seat_idx));
+        let all_in_amount = seat.chip_count;
+        
+        let max_bet = pot_manager::get_max_current_bet(&game.pot_state);
+        
+        {
+            let game_mut = option::borrow_mut(&mut table.game);
+            let seat_mut = option::borrow_mut(vector::borrow_mut(&mut table.seats, seat_idx));
+            seat_mut.chip_count = 0;
+            pot_manager::add_bet(&mut game_mut.pot_state, hand_idx, all_in_amount);
+            *vector::borrow_mut(&mut game_mut.player_status, hand_idx) = STATUS_ALL_IN;
+            
+            let current_bet = pot_manager::get_current_bet(&game_mut.pot_state, hand_idx);
+            if (current_bet > max_bet) {
+                game_mut.last_aggressor = option::some(hand_idx);
+            };
+        };
+        
+        advance_action_internal(table);
+    }
+
+    // ============================================
+    // INTERNAL GAME LOGIC
+    // ============================================
+
+    fun advance_action_internal(table: &mut Table) {
+        let game = option::borrow(&table.game);
+        let active_count = count_active_players_internal(game);
+        
+        if (active_count <= 1) {
+            end_hand_fold_internal(table);
+            return
+        };
+        
+        let game = option::borrow(&table.game);
+        if (is_betting_complete_internal(game)) {
+            collect_and_advance_phase(table);
+        } else {
+            let game_mut = option::borrow_mut(&mut table.game);
+            game_mut.action_on = next_active_hand_idx_internal(game_mut);
+            game_mut.action_deadline = timestamp::now_seconds() + ACTION_TIMEOUT_SECS;
+        };
+    }
+
+    fun collect_and_advance_phase(table: &mut Table) {
+        {
+            let game_mut = option::borrow_mut(&mut table.game);
+            let active = get_active_mask_internal(game_mut);
+            let all_in = get_all_in_mask_internal(game_mut);
+            pot_manager::collect_bets(&mut game_mut.pot_state, &active, &all_in);
+        };
+        advance_phase_internal(table);
+    }
+
+    fun advance_phase_internal(table: &mut Table) {
+        let game_mut = option::borrow_mut(&mut table.game);
+        game_mut.last_aggressor = option::none();
+        
+        let num_players = vector::length(&game_mut.players_in_hand);
+        let dealer_hand_idx = get_dealer_hand_idx_internal(game_mut);
+        game_mut.action_on = (dealer_hand_idx + 1) % num_players;
+        
+        // Skip non-active players
+        let start = game_mut.action_on;
+        while (*vector::borrow(&game_mut.player_status, game_mut.action_on) != STATUS_ACTIVE) {
+            game_mut.action_on = (game_mut.action_on + 1) % num_players;
+            if (game_mut.action_on == start) {
+                game_mut.phase = PHASE_SHOWDOWN;
+                run_showdown_internal(table);
+                return
+            };
+        };
+        
+        let game_mut = option::borrow_mut(&mut table.game);
+        if (game_mut.phase == PHASE_PREFLOP) {
+            deal_community_cards_internal(game_mut, 3);
+            game_mut.phase = PHASE_FLOP;
+        } else if (game_mut.phase == PHASE_FLOP) {
+            deal_community_cards_internal(game_mut, 1);
+            game_mut.phase = PHASE_TURN;
+        } else if (game_mut.phase == PHASE_TURN) {
+            deal_community_cards_internal(game_mut, 1);
+            game_mut.phase = PHASE_RIVER;
+        } else {
+            game_mut.phase = PHASE_SHOWDOWN;
+            run_showdown_internal(table);
+            return
+        };
+        
+        game_mut.action_deadline = timestamp::now_seconds() + ACTION_TIMEOUT_SECS;
+    }
+
+    fun run_showdown_internal(table: &mut Table) {
+        let game = option::borrow(&table.game);
+        let hand_rankings = vector::empty<pot_manager::HandRanking>();
+        let num_players = vector::length(&game.players_in_hand);
+        
+        let i = 0u64;
+        while (i < num_players) {
+            let status = *vector::borrow(&game.player_status, i);
+            if (status == STATUS_ACTIVE || status == STATUS_ALL_IN) {
+                let cards = vector::empty<u8>();
+                let hole = vector::borrow(&game.hole_cards, i);
+                vector::append(&mut cards, *hole);
+                vector::append(&mut cards, game.community_cards);
+                
+                let (hand_type, tiebreaker) = hand_eval::evaluate_hand(cards);
+                vector::push_back(&mut hand_rankings, pot_manager::new_hand_ranking(hand_type, tiebreaker));
+            } else {
+                vector::push_back(&mut hand_rankings, pot_manager::new_hand_ranking(0, 0));
+            };
+            i = i + 1;
+        };
+        
+        let active = get_non_folded_mask_internal(game);
+        let game = option::borrow(&table.game);
+        let distributions = pot_manager::calculate_distribution(&game.pot_state, &hand_rankings, &active);
+        
+        let game = option::borrow(&table.game);
+        let players_in_hand = game.players_in_hand;
+        
+        let d = 0u64;
+        while (d < vector::length(&distributions)) {
+            let dist = vector::borrow(&distributions, d);
+            let hand_idx = pot_manager::get_distribution_player(dist);
+            let amount = pot_manager::get_distribution_amount(dist);
+            let seat_idx = *vector::borrow(&players_in_hand, hand_idx);
+            let seat = option::borrow_mut(vector::borrow_mut(&mut table.seats, seat_idx));
+            seat.chip_count = seat.chip_count + amount;
+            d = d + 1;
+        };
+        
+        table.game = option::none();
+    }
+
+    fun end_hand_fold_internal(table: &mut Table) {
+        {
+            let game_mut = option::borrow_mut(&mut table.game);
+            let active = get_active_mask_internal(game_mut);
+            let all_in = get_all_in_mask_internal(game_mut);
+            pot_manager::collect_bets(&mut game_mut.pot_state, &active, &all_in);
+        };
+        
+        let game = option::borrow(&table.game);
+        let num_players = vector::length(&game.players_in_hand);
+        let winner_hand_idx = 0u64;
+        let i = 0u64;
+        while (i < num_players) {
+            if (*vector::borrow(&game.player_status, i) != STATUS_FOLDED) {
+                winner_hand_idx = i;
+                break
+            };
+            i = i + 1;
+        };
+        
+        let game = option::borrow(&table.game);
+        let total = pot_manager::get_total_pot(&game.pot_state);
+        let seat_idx = *vector::borrow(&game.players_in_hand, winner_hand_idx);
+        
+        let seat = option::borrow_mut(vector::borrow_mut(&mut table.seats, seat_idx));
+        seat.chip_count = seat.chip_count + total;
+        
+        table.game = option::none();
+    }
+
+    // ============================================
+    // HELPER FUNCTIONS
+    // ============================================
+
+    fun find_player_seat_in_table(table: &Table, player: address): u64 {
+        let i = 0u64;
+        while (i < MAX_PLAYERS) {
+            if (option::is_some(vector::borrow(&table.seats, i))) {
+                let seat = option::borrow(vector::borrow(&table.seats, i));
+                if (seat.player == player) { return i };
+            };
+            i = i + 1;
+        };
+        MAX_PLAYERS
+    }
+
+    fun find_player_hand_idx(players_in_hand: &vector<u64>, seats: &vector<Option<Seat>>, player: address): u64 {
+        let num = vector::length(players_in_hand);
+        let i = 0u64;
+        while (i < num) {
+            let seat_idx = *vector::borrow(players_in_hand, i);
+            let seat = option::borrow(vector::borrow(seats, seat_idx));
+            if (seat.player == player) { return i };
+            i = i + 1;
+        };
+        num
+    }
+
+    fun check_action_allowed_internal(game: &Game, seats: &vector<Option<Seat>>, player: address) {
+        assert!(game.phase >= PHASE_PREFLOP && game.phase <= PHASE_RIVER, E_WRONG_PHASE);
+        let hand_idx = find_player_hand_idx(&game.players_in_hand, seats, player);
+        assert!(game.action_on == hand_idx, E_NOT_YOUR_TURN);
+        assert!(*vector::borrow(&game.player_status, hand_idx) == STATUS_ACTIVE, E_INVALID_ACTION);
+    }
+
+    fun get_active_seat_indices_internal(table: &Table): vector<u64> {
+        let active = vector::empty<u64>();
+        let i = 0u64;
+        while (i < MAX_PLAYERS) {
+            if (option::is_some(vector::borrow(&table.seats, i))) {
+                let seat = option::borrow(vector::borrow(&table.seats, i));
+                if (!seat.is_sitting_out && seat.chip_count > 0) {
+                    vector::push_back(&mut active, i);
+                };
+            };
+            i = i + 1;
+        };
+        active
+    }
+
+    fun next_active_seat_internal(table: &Table, from: u64): u64 {
+        let i = (from + 1) % MAX_PLAYERS;
+        while (i != from) {
+            if (option::is_some(vector::borrow(&table.seats, i))) {
+                let seat = option::borrow(vector::borrow(&table.seats, i));
+                if (!seat.is_sitting_out && seat.chip_count > 0) { return i };
+            };
+            i = (i + 1) % MAX_PLAYERS;
+        };
+        from
+    }
+
+    fun all_committed_internal(game: &Game): bool {
+        let len = vector::length(&game.commits);
+        let i = 0u64;
         while (i < len) {
-            if (vector::is_empty(vector::borrow(&game.secrets, i))) {
-                return false
+            if (vector::is_empty(vector::borrow(&game.commits, i))) { return false };
+            i = i + 1;
+        };
+        true
+    }
+
+    fun all_revealed_internal(game: &Game): bool {
+        let len = vector::length(&game.secrets);
+        let i = 0u64;
+        while (i < len) {
+            if (vector::is_empty(vector::borrow(&game.secrets, i))) { return false };
+            i = i + 1;
+        };
+        true
+    }
+
+    fun shuffle_deck_internal(game: &mut Game) {
+        let seed = vector::empty<u8>();
+        let i = 0u64;
+        while (i < vector::length(&game.secrets)) {
+            vector::append(&mut seed, *vector::borrow(&game.secrets, i));
+            i = i + 1;
+        };
+        let seed_hash = hash::sha3_256(seed);
+        
+        let deck = vector::empty<u8>();
+        let c = 0u8;
+        while ((c as u64) < 52) {
+            vector::push_back(&mut deck, c);
+            c = c + 1;
+        };
+        
+        let hash_state = seed_hash;
+        let n = 52u64;
+        while (n > 1) {
+            hash_state = hash::sha3_256(hash_state);
+            let rand = (*vector::borrow(&hash_state, 0) as u64);
+            let j = rand % n;
+            n = n - 1;
+            vector::swap(&mut deck, n, j);
+        };
+        
+        game.deck = deck;
+        game.deck_index = 0;
+    }
+
+    fun deal_hole_cards_internal(game: &mut Game) {
+        let num = vector::length(&game.players_in_hand);
+        let p = 0u64;
+        while (p < num) {
+            let cards = vector::empty<u8>();
+            vector::push_back(&mut cards, *vector::borrow(&game.deck, game.deck_index));
+            vector::push_back(&mut cards, *vector::borrow(&game.deck, game.deck_index + 1));
+            *vector::borrow_mut(&mut game.hole_cards, p) = cards;
+            game.deck_index = game.deck_index + 2;
+            p = p + 1;
+        };
+    }
+
+    fun deal_community_cards_internal(game: &mut Game, count: u64) {
+        let i = 0u64;
+        while (i < count) {
+            vector::push_back(&mut game.community_cards, *vector::borrow(&game.deck, game.deck_index));
+            game.deck_index = game.deck_index + 1;
+            i = i + 1;
+        };
+    }
+
+    fun post_blinds_internal(game: &mut Game, seats: &mut vector<Option<Seat>>, sb: u64, bb: u64) {
+        let _num_players = vector::length(&game.players_in_hand);
+        let sb_hand_idx = get_small_blind_hand_idx_internal(game);
+        let bb_hand_idx = get_big_blind_hand_idx_internal(game);
+        
+        let sb_seat_idx = *vector::borrow(&game.players_in_hand, sb_hand_idx);
+        let bb_seat_idx = *vector::borrow(&game.players_in_hand, bb_hand_idx);
+        
+        let sb_amount = sb;
+        {
+            let seat = option::borrow_mut(vector::borrow_mut(seats, sb_seat_idx));
+            if (seat.chip_count < sb_amount) {
+                sb_amount = seat.chip_count;
+                *vector::borrow_mut(&mut game.player_status, sb_hand_idx) = STATUS_ALL_IN;
+            };
+            seat.chip_count = seat.chip_count - sb_amount;
+        };
+        pot_manager::add_bet(&mut game.pot_state, sb_hand_idx, sb_amount);
+        
+        let bb_amount = bb;
+        {
+            let seat = option::borrow_mut(vector::borrow_mut(seats, bb_seat_idx));
+            if (seat.chip_count < bb_amount) {
+                bb_amount = seat.chip_count;
+                *vector::borrow_mut(&mut game.player_status, bb_hand_idx) = STATUS_ALL_IN;
+            };
+            seat.chip_count = seat.chip_count - bb_amount;
+        };
+        pot_manager::add_bet(&mut game.pot_state, bb_hand_idx, bb_amount);
+        
+        game.min_raise = bb;
+    }
+
+    fun get_dealer_hand_idx_internal(game: &Game): u64 {
+        let num = vector::length(&game.players_in_hand);
+        let i = 0u64;
+        while (i < num) {
+            if (*vector::borrow(&game.players_in_hand, i) == game.dealer_position) { return i };
+            i = i + 1;
+        };
+        0
+    }
+
+    fun get_small_blind_hand_idx_internal(game: &Game): u64 {
+        let dealer_idx = get_dealer_hand_idx_internal(game);
+        let num = vector::length(&game.players_in_hand);
+        (dealer_idx + 1) % num
+    }
+
+    fun get_big_blind_hand_idx_internal(game: &Game): u64 {
+        let dealer_idx = get_dealer_hand_idx_internal(game);
+        let num = vector::length(&game.players_in_hand);
+        (dealer_idx + 2) % num
+    }
+
+    fun count_active_players_internal(game: &Game): u64 {
+        let count = 0u64;
+        let i = 0u64;
+        while (i < vector::length(&game.player_status)) {
+            let status = *vector::borrow(&game.player_status, i);
+            if (status == STATUS_ACTIVE || status == STATUS_ALL_IN) { count = count + 1; };
+            i = i + 1;
+        };
+        count
+    }
+
+    fun is_betting_complete_internal(game: &Game): bool {
+        let max_bet = pot_manager::get_max_current_bet(&game.pot_state);
+        let num = vector::length(&game.player_status);
+        
+        let i = 0u64;
+        while (i < num) {
+            let status = *vector::borrow(&game.player_status, i);
+            if (status == STATUS_ACTIVE) {
+                let bet = pot_manager::get_current_bet(&game.pot_state, i);
+                if (bet < max_bet) { return false };
             };
             i = i + 1;
         };
         true
     }
 
-    /// Shuffle the deck and deal cards to all players
-    /// 
-    /// Uses Fisher-Yates shuffle with hash-based randomness derived from
-    /// all players' revealed secrets.
-    fun shuffle_and_deal(game: &mut Game) {
-        // Concatenate all secrets and hash for seed
-        let seed = vector::empty<u8>();
-        let i = 0;
-        while (i < MAX_PLAYERS) {
-            let player_secret = vector::borrow(&game.secrets, i);
-            let j = 0;
-            while (j < vector::length(player_secret)) {
-                vector::push_back(&mut seed, *vector::borrow(player_secret, j));
-                j = j + 1;
-            };
-            i = i + 1;
+    fun next_active_hand_idx_internal(game: &Game): u64 {
+        let num = vector::length(&game.player_status);
+        let next = (game.action_on + 1) % num;
+        while (next != game.action_on) {
+            if (*vector::borrow(&game.player_status, next) == STATUS_ACTIVE) { return next };
+            next = (next + 1) % num;
         };
-        let seed_hash = hash::sha3_256(seed);
-        
-        // Initialize deck (0-51)
-        let deck = vector::empty<u8>();
-        let c = 0u8;
-        while ((c as u64) < DECK_SIZE) {
-            vector::push_back(&mut deck, c);
-            c = c + 1;
-        };
-        
-        // Fisher-Yates shuffle using hash-based randomness
-        let hash_state = seed_hash;
-        let n = DECK_SIZE;
-        while (n > 1) {
-            hash_state = hash::sha3_256(hash_state);
-            let rand_byte = *vector::borrow(&hash_state, 0);
-            let j = ((rand_byte as u64) % n);
-            n = n - 1;
-            vector::swap(&mut deck, n, j);
-        };
-        
-        game.deck = deck;
-        
-        // Deal hole cards (2 per player)
-        let hole_cards = vector::empty<vector<u8>>();
-        let card_idx = 0u64;
-        let p = 0u64;
-        while (p < MAX_PLAYERS) {
-            let player_cards = vector::empty<u8>();
-            vector::push_back(&mut player_cards, *vector::borrow(&game.deck, card_idx));
-            vector::push_back(&mut player_cards, *vector::borrow(&game.deck, card_idx + 1));
-            vector::push_back(&mut hole_cards, player_cards);
-            card_idx = card_idx + 2;
-            p = p + 1;
-        };
-        game.hole_cards = hole_cards;
-        
-        // Deal community cards (next 5)
-        let community = vector::empty<u8>();
-        let c = 0u64;
-        while (c < COMMUNITY_CARDS) {
-            vector::push_back(&mut community, *vector::borrow(&game.deck, card_idx));
-            card_idx = card_idx + 1;
-            c = c + 1;
-        };
-        game.community_cards = community;
+        game.action_on
     }
 
-    /// Compute a simplified score for a player's hand
-    /// 
-    /// Score = sum of hole card ranks + sum of top 3 community card ranks
-    /// This is NOT a proper poker hand evaluator, just a simple demo.
-    fun compute_score(hole: &vector<u8>, community: &vector<u8>): u64 {
-        let score = 0u64;
-        
-        // Add hole card ranks
+    fun get_active_mask_internal(game: &Game): vector<bool> {
+        let mask = vector::empty<bool>();
         let i = 0u64;
-        while (i < vector::length(hole)) {
-            let card = *vector::borrow(hole, i);
-            score = score + ((card % 13) as u64);
+        while (i < vector::length(&game.player_status)) {
+            let status = *vector::borrow(&game.player_status, i);
+            vector::push_back(&mut mask, status == STATUS_ACTIVE);
             i = i + 1;
         };
-        
-        // Collect community card ranks
-        let ranks = vector::empty<u64>();
+        mask
+    }
+
+    fun get_all_in_mask_internal(game: &Game): vector<bool> {
+        let mask = vector::empty<bool>();
         let i = 0u64;
-        while (i < vector::length(community)) {
-            let card = *vector::borrow(community, i);
-            vector::push_back(&mut ranks, ((card % 13) as u64));
+        while (i < vector::length(&game.player_status)) {
+            let status = *vector::borrow(&game.player_status, i);
+            vector::push_back(&mut mask, status == STATUS_ALL_IN);
             i = i + 1;
         };
-        
-        // Simple bubble sort descending
-        let n = vector::length(&ranks);
+        mask
+    }
+
+    fun get_non_folded_mask_internal(game: &Game): vector<bool> {
+        let mask = vector::empty<bool>();
         let i = 0u64;
-        while (i < n) {
-            let j = i + 1;
-            while (j < n) {
-                if (*vector::borrow(&ranks, j) > *vector::borrow(&ranks, i)) {
-                    vector::swap(&mut ranks, i, j);
-                };
-                j = j + 1;
-            };
+        while (i < vector::length(&game.player_status)) {
+            let status = *vector::borrow(&game.player_status, i);
+            vector::push_back(&mut mask, status != STATUS_FOLDED);
             i = i + 1;
         };
-        
-        // Add top 3 ranks
-        let i = 0u64;
-        while (i < 3 && i < n) {
-            score = score + *vector::borrow(&ranks, i);
-            i = i + 1;
-        };
-        
-        score
+        mask
     }
 
     // ============================================
@@ -359,143 +841,40 @@ module holdemgame::texas_holdem {
     // ============================================
 
     #[view]
-    /// Get a player's hole cards
-    /// 
-    /// Can only be called after cards are dealt (STATE_DEALT).
-    /// Returns a vector of 2 card bytes.
-    public fun view_hole_cards(game_addr: address, player: address): vector<u8> acquires Game {
-        assert!(exists<Game>(game_addr), E_GAME_NOT_INITIALIZED);
-        let game = borrow_global<Game>(game_addr);
-        assert!(game.state == STATE_DEALT, E_WRONG_PHASE);
-        
-        let (found, idx) = vector::index_of(&game.players, &player);
-        assert!(found, E_NOT_A_PLAYER);
-        
-        *vector::borrow(&game.hole_cards, idx)
+    public fun get_table_config(table_addr: address): (u64, u64, u64, u64) acquires Table {
+        let table = borrow_global<Table>(table_addr);
+        (table.config.small_blind, table.config.big_blind, table.config.min_buy_in, table.config.max_buy_in)
     }
 
     #[view]
-    /// Get the community cards
-    /// 
-    /// Can only be called after cards are dealt (STATE_DEALT).
-    /// Returns a vector of 5 card bytes.
-    public fun view_community_cards(game_addr: address): vector<u8> acquires Game {
-        assert!(exists<Game>(game_addr), E_GAME_NOT_INITIALIZED);
-        let game = borrow_global<Game>(game_addr);
-        assert!(game.state == STATE_DEALT, E_WRONG_PHASE);
-        game.community_cards
+    public fun get_game_phase(table_addr: address): u8 acquires Table {
+        let table = borrow_global<Table>(table_addr);
+        if (option::is_none(&table.game)) { PHASE_WAITING }
+        else { option::borrow(&table.game).phase }
     }
 
     #[view]
-    /// Compute winners based on simplified scoring
-    /// 
-    /// Returns addresses of all players with the highest score (handles ties).
-    /// Uses a simple scoring rule: sum of hole card ranks + best 3 community ranks.
-    public fun view_winners(game_addr: address): vector<address> acquires Game {
-        assert!(exists<Game>(game_addr), E_GAME_NOT_INITIALIZED);
-        let game = borrow_global<Game>(game_addr);
-        assert!(game.state == STATE_DEALT, E_WRONG_PHASE);
-        
-        let scores = vector::empty<u64>();
-        let max_score = 0u64;
-        
-        // Compute score for each player
-        let p = 0u64;
-        while (p < MAX_PLAYERS) {
-            let score = compute_score(
-                vector::borrow(&game.hole_cards, p),
-                &game.community_cards
-            );
-            vector::push_back(&mut scores, score);
-            if (score > max_score) {
-                max_score = score;
-            };
-            p = p + 1;
-        };
-        
-        // Find all players with max score (handle ties)
-        let winners = vector::empty<address>();
-        let p = 0u64;
-        while (p < MAX_PLAYERS) {
-            if (*vector::borrow(&scores, p) == max_score) {
-                vector::push_back(&mut winners, *vector::borrow(&game.players, p));
-            };
-            p = p + 1;
-        };
-        
-        winners
+    public fun get_pot_size(table_addr: address): u64 acquires Table {
+        let table = borrow_global<Table>(table_addr);
+        if (option::is_none(&table.game)) { 0 }
+        else { pot_manager::get_total_pot(&option::borrow(&table.game).pot_state) }
     }
 
     #[view]
-    /// Get current game state
-    /// 
-    /// Returns:
-    /// - 0 = STATE_JOINING (accepting players)
-    /// - 1 = STATE_REVEALING (waiting for reveals)
-    /// - 2 = STATE_DEALT (cards dealt, round complete)
-    public fun view_game_state(game_addr: address): u8 acquires Game {
-        assert!(exists<Game>(game_addr), E_GAME_NOT_INITIALIZED);
-        borrow_global<Game>(game_addr).state
+    public fun get_community_cards(table_addr: address): vector<u8> acquires Table {
+        let table = borrow_global<Table>(table_addr);
+        if (option::is_none(&table.game)) { vector::empty() }
+        else { option::borrow(&table.game).community_cards }
     }
 
     #[view]
-    /// Get list of players
-    /// 
-    /// Returns addresses of all players who have joined.
-    public fun view_players(game_addr: address): vector<address> acquires Game {
-        assert!(exists<Game>(game_addr), E_GAME_NOT_INITIALIZED);
-        borrow_global<Game>(game_addr).players
-    }
-
-    #[view]
-    /// Get number of players who have joined
-    public fun view_player_count(game_addr: address): u64 acquires Game {
-        assert!(exists<Game>(game_addr), E_GAME_NOT_INITIALIZED);
-        vector::length(&borrow_global<Game>(game_addr).players)
-    }
-
-    #[view]
-    /// Check if a specific player has revealed their secret
-    public fun has_player_revealed(game_addr: address, player: address): bool acquires Game {
-        assert!(exists<Game>(game_addr), E_GAME_NOT_INITIALIZED);
-        let game = borrow_global<Game>(game_addr);
-        
-        let (found, idx) = vector::index_of(&game.players, &player);
-        if (!found) { return false };
-        
-        !vector::is_empty(vector::borrow(&game.secrets, idx))
-    }
-
-    #[view]
-    /// Get the number of players who have revealed their secrets
-    public fun view_reveal_count(game_addr: address): u64 acquires Game {
-        assert!(exists<Game>(game_addr), E_GAME_NOT_INITIALIZED);
-        let game = borrow_global<Game>(game_addr);
-        
-        let count = 0u64;
-        let i = 0u64;
-        while (i < vector::length(&game.secrets)) {
-            if (!vector::is_empty(vector::borrow(&game.secrets, i))) {
-                count = count + 1;
-            };
-            i = i + 1;
-        };
-        count
-    }
-
-    // ============================================
-    // TEST HELPERS
-    // ============================================
-
-    #[test_only]
-    /// Initialize the game for testing
-    public fun init_for_test(admin: &signer) {
-        init(admin);
-    }
-
-    #[test_only]
-    /// Get the admin address from a game
-    public fun get_admin(game_addr: address): address acquires Game {
-        borrow_global<Game>(game_addr).admin
+    public fun get_seat_info(table_addr: address, seat_idx: u64): (address, u64, bool) acquires Table {
+        let table = borrow_global<Table>(table_addr);
+        if (option::is_some(vector::borrow(&table.seats, seat_idx))) {
+            let seat = option::borrow(vector::borrow(&table.seats, seat_idx));
+            (seat.player, seat.chip_count, seat.is_sitting_out)
+        } else {
+            (@0x0, 0, true)
+        }
     }
 }

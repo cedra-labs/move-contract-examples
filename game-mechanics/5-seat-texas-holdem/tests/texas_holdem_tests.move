@@ -1,503 +1,216 @@
-// Unit tests for the Texas Hold'em game module
-// 
-// Tests cover:
-// - Game initialization
-// - Player joining
-// - Secret reveal and verification
-// - Card dealing
-// - Winner determination
-// - Error cases and edge conditions
+// Hand Evaluation Tests
+// Tests for all 10 poker hand types and comparison logic
 #[test_only]
-module holdemgame::texas_holdem_tests {
-    use std::signer;
-    use std::vector;
-    use cedra_std::hash;
-    use holdemgame::texas_holdem;
+module holdemgame::hand_eval_tests {
+    use holdemgame::hand_eval;
 
-    // ============================================
-    // TEST CONSTANTS
-    // ============================================
-    
-    const STATE_JOINING: u8 = 0;
-    const STATE_REVEALING: u8 = 1;
-    const STATE_DEALT: u8 = 2;
-
-    // ============================================
-    // HELPER FUNCTIONS
-    // ============================================
-
-    /// Create a test secret and its hash
-    fun create_secret_and_hash(secret_bytes: vector<u8>): (vector<u8>, vector<u8>) {
-        let hash = hash::sha3_256(secret_bytes);
-        (secret_bytes, hash)
+    // Helper to create a card
+    // rank: 0=2, 1=3, ..., 8=10, 9=J, 10=Q, 11=K, 12=Ace
+    // suit: 0=clubs(c), 1=diamonds(d), 2=hearts(h), 3=spades(s)
+    fun make_card(rank: u8, suit: u8): u8 {
+        suit * 13 + rank
     }
 
-    // ============================================
-    // INITIALIZATION TESTS
-    // ============================================
-
-    #[test(admin = @holdemgame)]
-    fun test_init_success(admin: &signer) {
-        texas_holdem::init(admin);
-        let game_addr = signer::address_of(admin);
+    #[test]
+    fun test_high_card() {
+        // Cards: 2c, 5d, 7h, 9s, Jc, Kd, Ah (no pair, no straight, no flush)
+        let cards = vector[
+            make_card(0, 0),   // 2c
+            make_card(3, 1),   // 5d
+            make_card(5, 2),   // 7h
+            make_card(7, 3),   // 9s
+            make_card(9, 0),   // Jc
+            make_card(11, 1),  // Kd
+            make_card(12, 2),  // Ah
+        ];
         
-        // Verify initial state
-        let state = texas_holdem::view_game_state(game_addr);
-        assert!(state == STATE_JOINING, 0);
-        
-        // Verify no players
-        let player_count = texas_holdem::view_player_count(game_addr);
-        assert!(player_count == 0, 1);
+        let (hand_type, _) = hand_eval::evaluate_hand(cards);
+        assert!(hand_type == 0, 1); // HIGH_CARD
     }
 
-    #[test(admin = @holdemgame)]
-    #[expected_failure(abort_code = 2)] // E_GAME_ALREADY_INITIALIZED
-    fun test_init_fails_if_already_initialized(admin: &signer) {
-        texas_holdem::init(admin);
-        texas_holdem::init(admin); // Should fail
+    #[test]
+    fun test_one_pair() {
+        // Cards: 2c, 2d, 5h, 7s, 9c, Jd, Kh
+        let cards = vector[
+            make_card(0, 0),   // 2c
+            make_card(0, 1),   // 2d
+            make_card(3, 2),   // 5h
+            make_card(5, 3),   // 7s
+            make_card(7, 0),   // 9c
+            make_card(9, 1),   // Jd
+            make_card(11, 2),  // Kh
+        ];
+        
+        let (hand_type, _) = hand_eval::evaluate_hand(cards);
+        assert!(hand_type == 1, 1); // ONE_PAIR
     }
 
-    // ============================================
-    // JOIN GAME TESTS
-    // ============================================
-
-    #[test(admin = @holdemgame, player1 = @0x1)]
-    fun test_join_game_single_player(admin: &signer, player1: &signer) {
-        texas_holdem::init(admin);
-        let game_addr = signer::address_of(admin);
+    #[test]
+    fun test_two_pair() {
+        // Cards: 2c, 2d, 5h, 5s, 9c, Jd, Kh
+        let cards = vector[
+            make_card(0, 0),   // 2c
+            make_card(0, 1),   // 2d
+            make_card(3, 2),   // 5h
+            make_card(3, 3),   // 5s
+            make_card(7, 0),   // 9c
+            make_card(9, 1),   // Jd
+            make_card(11, 2),  // Kh
+        ];
         
-        let (_secret, commit) = create_secret_and_hash(b"player1_secret");
-        texas_holdem::join_game(player1, game_addr, commit);
-        
-        // Verify player count
-        let player_count = texas_holdem::view_player_count(game_addr);
-        assert!(player_count == 1, 0);
-        
-        // Verify still in joining state
-        let state = texas_holdem::view_game_state(game_addr);
-        assert!(state == STATE_JOINING, 1);
+        let (hand_type, _) = hand_eval::evaluate_hand(cards);
+        assert!(hand_type == 2, 1); // TWO_PAIR
     }
 
-    #[test(admin = @holdemgame, p1 = @0x1, p2 = @0x2, p3 = @0x3, p4 = @0x4, p5 = @0x5)]
-    fun test_join_game_five_players_transitions_to_revealing(
-        admin: &signer,
-        p1: &signer,
-        p2: &signer,
-        p3: &signer,
-        p4: &signer,
-        p5: &signer
-    ) {
-        texas_holdem::init(admin);
-        let game_addr = signer::address_of(admin);
+    #[test]
+    fun test_three_of_a_kind() {
+        // Cards: 5c, 5d, 5h, 7s, 9c, Jd, Kh
+        let cards = vector[
+            make_card(3, 0),   // 5c
+            make_card(3, 1),   // 5d
+            make_card(3, 2),   // 5h
+            make_card(5, 3),   // 7s
+            make_card(7, 0),   // 9c
+            make_card(9, 1),   // Jd
+            make_card(11, 2),  // Kh
+        ];
         
-        // All 5 players join
-        let (_, c1) = create_secret_and_hash(b"secret1");
-        let (_, c2) = create_secret_and_hash(b"secret2");
-        let (_, c3) = create_secret_and_hash(b"secret3");
-        let (_, c4) = create_secret_and_hash(b"secret4");
-        let (_, c5) = create_secret_and_hash(b"secret5");
-        
-        texas_holdem::join_game(p1, game_addr, c1);
-        texas_holdem::join_game(p2, game_addr, c2);
-        texas_holdem::join_game(p3, game_addr, c3);
-        texas_holdem::join_game(p4, game_addr, c4);
-        texas_holdem::join_game(p5, game_addr, c5);
-        
-        // Verify state transitioned to revealing
-        let state = texas_holdem::view_game_state(game_addr);
-        assert!(state == STATE_REVEALING, 0);
-        
-        // Verify player count
-        let player_count = texas_holdem::view_player_count(game_addr);
-        assert!(player_count == 5, 1);
+        let (hand_type, _) = hand_eval::evaluate_hand(cards);
+        assert!(hand_type == 3, 1); // THREE_OF_A_KIND
     }
 
-    #[test(admin = @holdemgame, player1 = @0x1)]
-    #[expected_failure(abort_code = 4)] // E_ALREADY_JOINED
-    fun test_join_game_fails_if_already_joined(admin: &signer, player1: &signer) {
-        texas_holdem::init(admin);
-        let game_addr = signer::address_of(admin);
+    #[test]
+    fun test_straight() {
+        // Cards: 4c, 5d, 6h, 7s, 8c, Jd, Kh
+        let cards = vector[
+            make_card(2, 0),   // 4c
+            make_card(3, 1),   // 5d
+            make_card(4, 2),   // 6h
+            make_card(5, 3),   // 7s
+            make_card(6, 0),   // 8c
+            make_card(9, 1),   // Jd
+            make_card(11, 2),  // Kh
+        ];
         
-        let (_, commit) = create_secret_and_hash(b"secret");
-        texas_holdem::join_game(player1, game_addr, commit);
-        texas_holdem::join_game(player1, game_addr, commit); // Should fail
+        let (hand_type, _) = hand_eval::evaluate_hand(cards);
+        assert!(hand_type == 4, 1); // STRAIGHT
     }
 
-    #[test(admin = @holdemgame, p1 = @0x1, p2 = @0x2, p3 = @0x3, p4 = @0x4, p5 = @0x5, p6 = @0x6)]
-    #[expected_failure(abort_code = 9)] // E_WRONG_PHASE (game transitions to REVEALING after 5 players)
-    fun test_join_game_fails_if_full(
-        admin: &signer,
-        p1: &signer,
-        p2: &signer,
-        p3: &signer,
-        p4: &signer,
-        p5: &signer,
-        p6: &signer
-    ) {
-        texas_holdem::init(admin);
-        let game_addr = signer::address_of(admin);
+    #[test]
+    fun test_flush() {
+        // Cards: 2h, 5h, 7h, 9h, Jh, Kd, Ac
+        let cards = vector[
+            make_card(0, 2),   // 2h
+            make_card(3, 2),   // 5h
+            make_card(5, 2),   // 7h
+            make_card(7, 2),   // 9h
+            make_card(9, 2),   // Jh
+            make_card(11, 1),  // Kd
+            make_card(12, 0),  // Ac
+        ];
         
-        let (_, c1) = create_secret_and_hash(b"secret1");
-        let (_, c2) = create_secret_and_hash(b"secret2");
-        let (_, c3) = create_secret_and_hash(b"secret3");
-        let (_, c4) = create_secret_and_hash(b"secret4");
-        let (_, c5) = create_secret_and_hash(b"secret5");
-        let (_, c6) = create_secret_and_hash(b"secret6");
-        
-        texas_holdem::join_game(p1, game_addr, c1);
-        texas_holdem::join_game(p2, game_addr, c2);
-        texas_holdem::join_game(p3, game_addr, c3);
-        texas_holdem::join_game(p4, game_addr, c4);
-        texas_holdem::join_game(p5, game_addr, c5);
-        texas_holdem::join_game(p6, game_addr, c6); // Should fail - game full
+        let (hand_type, _) = hand_eval::evaluate_hand(cards);
+        assert!(hand_type == 5, 1); // FLUSH
     }
 
-    #[test(admin = @holdemgame, player1 = @0x1)]
-    #[expected_failure(abort_code = 10)] // E_INVALID_COMMIT_LENGTH
-    fun test_join_game_fails_with_invalid_commit_length(admin: &signer, player1: &signer) {
-        texas_holdem::init(admin);
-        let game_addr = signer::address_of(admin);
+    #[test]
+    fun test_full_house() {
+        // Cards: 5c, 5d, 5h, Ks, Kc, 2d, 3h
+        let cards = vector[
+            make_card(3, 0),   // 5c
+            make_card(3, 1),   // 5d
+            make_card(3, 2),   // 5h
+            make_card(11, 3),  // Ks
+            make_card(11, 0),  // Kc
+            make_card(0, 1),   // 2d
+            make_card(1, 2),   // 3h
+        ];
         
-        // Commit not 32 bytes
-        let bad_commit = b"too_short";
-        texas_holdem::join_game(player1, game_addr, bad_commit); // Should fail
+        let (hand_type, _) = hand_eval::evaluate_hand(cards);
+        assert!(hand_type == 6, 1); // FULL_HOUSE
     }
 
-    // ============================================
-    // REVEAL SECRET TESTS
-    // ============================================
-
-    #[test(admin = @holdemgame, p1 = @0x1, p2 = @0x2, p3 = @0x3, p4 = @0x4, p5 = @0x5)]
-    fun test_reveal_secret_single_player(
-        admin: &signer,
-        p1: &signer,
-        p2: &signer,
-        p3: &signer,
-        p4: &signer,
-        p5: &signer
-    ) {
-        texas_holdem::init(admin);
-        let game_addr = signer::address_of(admin);
+    #[test]
+    fun test_four_of_a_kind() {
+        // Cards: 9c, 9d, 9h, 9s, Kc, Qd, Jh
+        let cards = vector[
+            make_card(7, 0),   // 9c
+            make_card(7, 1),   // 9d
+            make_card(7, 2),   // 9h
+            make_card(7, 3),   // 9s
+            make_card(11, 0),  // Kc
+            make_card(10, 1),  // Qd
+            make_card(9, 2),   // Jh
+        ];
         
-        // Setup: all players join
-        let (s1, c1) = create_secret_and_hash(b"secret1");
-        let (_, c2) = create_secret_and_hash(b"secret2");
-        let (_, c3) = create_secret_and_hash(b"secret3");
-        let (_, c4) = create_secret_and_hash(b"secret4");
-        let (_, c5) = create_secret_and_hash(b"secret5");
-        
-        texas_holdem::join_game(p1, game_addr, c1);
-        texas_holdem::join_game(p2, game_addr, c2);
-        texas_holdem::join_game(p3, game_addr, c3);
-        texas_holdem::join_game(p4, game_addr, c4);
-        texas_holdem::join_game(p5, game_addr, c5);
-        
-        // Player 1 reveals
-        texas_holdem::reveal_secret(p1, game_addr, s1);
-        
-        // Verify reveal count
-        let reveal_count = texas_holdem::view_reveal_count(game_addr);
-        assert!(reveal_count == 1, 0);
-        
-        // Verify player 1 has revealed
-        let has_revealed = texas_holdem::has_player_revealed(game_addr, signer::address_of(p1));
-        assert!(has_revealed, 1);
-        
-        // Still in revealing state
-        let state = texas_holdem::view_game_state(game_addr);
-        assert!(state == STATE_REVEALING, 2);
+        let (hand_type, _) = hand_eval::evaluate_hand(cards);
+        assert!(hand_type == 7, 1); // FOUR_OF_A_KIND
     }
 
-    #[test(admin = @holdemgame, p1 = @0x1, p2 = @0x2, p3 = @0x3, p4 = @0x4, p5 = @0x5)]
-    fun test_reveal_all_secrets_deals_cards(
-        admin: &signer,
-        p1: &signer,
-        p2: &signer,
-        p3: &signer,
-        p4: &signer,
-        p5: &signer
-    ) {
-        texas_holdem::init(admin);
-        let game_addr = signer::address_of(admin);
+    #[test]
+    fun test_straight_flush() {
+        // Cards: 5s, 6s, 7s, 8s, 9s, Kd, Ac
+        let cards = vector[
+            make_card(3, 3),   // 5s
+            make_card(4, 3),   // 6s
+            make_card(5, 3),   // 7s
+            make_card(6, 3),   // 8s
+            make_card(7, 3),   // 9s
+            make_card(11, 1),  // Kd
+            make_card(12, 0),  // Ac
+        ];
         
-        // Setup secrets
-        let (s1, c1) = create_secret_and_hash(b"secret1");
-        let (s2, c2) = create_secret_and_hash(b"secret2");
-        let (s3, c3) = create_secret_and_hash(b"secret3");
-        let (s4, c4) = create_secret_and_hash(b"secret4");
-        let (s5, c5) = create_secret_and_hash(b"secret5");
-        
-        // All players join
-        texas_holdem::join_game(p1, game_addr, c1);
-        texas_holdem::join_game(p2, game_addr, c2);
-        texas_holdem::join_game(p3, game_addr, c3);
-        texas_holdem::join_game(p4, game_addr, c4);
-        texas_holdem::join_game(p5, game_addr, c5);
-        
-        // All players reveal
-        texas_holdem::reveal_secret(p1, game_addr, s1);
-        texas_holdem::reveal_secret(p2, game_addr, s2);
-        texas_holdem::reveal_secret(p3, game_addr, s3);
-        texas_holdem::reveal_secret(p4, game_addr, s4);
-        texas_holdem::reveal_secret(p5, game_addr, s5);
-        
-        // Verify state transitioned to dealt
-        let state = texas_holdem::view_game_state(game_addr);
-        assert!(state == STATE_DEALT, 0);
-        
-        // Verify hole cards exist for each player
-        let hole1 = texas_holdem::view_hole_cards(game_addr, signer::address_of(p1));
-        assert!(vector::length(&hole1) == 2, 1);
-        
-        let hole2 = texas_holdem::view_hole_cards(game_addr, signer::address_of(p2));
-        assert!(vector::length(&hole2) == 2, 2);
-        
-        // Verify community cards
-        let community = texas_holdem::view_community_cards(game_addr);
-        assert!(vector::length(&community) == 5, 3);
-        
-        // Verify cards are valid (0-51)
-        let i = 0;
-        while (i < 2) {
-            let card = *vector::borrow(&hole1, i);
-            assert!(card < 52, 4);
-            i = i + 1;
-        };
+        let (hand_type, _) = hand_eval::evaluate_hand(cards);
+        assert!(hand_type == 8, 1); // STRAIGHT_FLUSH
     }
 
-    #[test(admin = @holdemgame, p1 = @0x1, p2 = @0x2, p3 = @0x3, p4 = @0x4, p5 = @0x5)]
-    #[expected_failure(abort_code = 8)] // E_INVALID_SECRET
-    fun test_reveal_fails_with_wrong_secret(
-        admin: &signer,
-        p1: &signer,
-        p2: &signer,
-        p3: &signer,
-        p4: &signer,
-        p5: &signer
-    ) {
-        texas_holdem::init(admin);
-        let game_addr = signer::address_of(admin);
+    #[test]
+    fun test_royal_flush() {
+        // Cards: 10s, Js, Qs, Ks, As, 2d, 3c
+        let cards = vector[
+            make_card(8, 3),   // 10s
+            make_card(9, 3),   // Js
+            make_card(10, 3),  // Qs
+            make_card(11, 3),  // Ks
+            make_card(12, 3),  // As
+            make_card(0, 1),   // 2d
+            make_card(1, 0),   // 3c
+        ];
         
-        let (_, c1) = create_secret_and_hash(b"secret1");
-        let (_, c2) = create_secret_and_hash(b"secret2");
-        let (_, c3) = create_secret_and_hash(b"secret3");
-        let (_, c4) = create_secret_and_hash(b"secret4");
-        let (_, c5) = create_secret_and_hash(b"secret5");
-        
-        texas_holdem::join_game(p1, game_addr, c1);
-        texas_holdem::join_game(p2, game_addr, c2);
-        texas_holdem::join_game(p3, game_addr, c3);
-        texas_holdem::join_game(p4, game_addr, c4);
-        texas_holdem::join_game(p5, game_addr, c5);
-        
-        // Reveal with wrong secret
-        texas_holdem::reveal_secret(p1, game_addr, b"wrong_secret"); // Should fail
+        let (hand_type, _) = hand_eval::evaluate_hand(cards);
+        assert!(hand_type == 9, 1); // ROYAL_FLUSH
     }
 
-    #[test(admin = @holdemgame, p1 = @0x1, p2 = @0x2, p3 = @0x3, p4 = @0x4, p5 = @0x5)]
-    #[expected_failure(abort_code = 7)] // E_ALREADY_REVEALED
-    fun test_reveal_fails_if_already_revealed(
-        admin: &signer,
-        p1: &signer,
-        p2: &signer,
-        p3: &signer,
-        p4: &signer,
-        p5: &signer
-    ) {
-        texas_holdem::init(admin);
-        let game_addr = signer::address_of(admin);
+    #[test]
+    fun test_compare_hands() {
+        // Royal flush beats straight flush
+        assert!(hand_eval::compare_hands(9, 0, 8, 7) == 1, 1);
         
-        let (s1, c1) = create_secret_and_hash(b"secret1");
-        let (_, c2) = create_secret_and_hash(b"secret2");
-        let (_, c3) = create_secret_and_hash(b"secret3");
-        let (_, c4) = create_secret_and_hash(b"secret4");
-        let (_, c5) = create_secret_and_hash(b"secret5");
+        // Pair of kings beats pair of queens (tiebreaker: rank)
+        assert!(hand_eval::compare_hands(1, 11 << 24, 1, 10 << 24) == 1, 2);
         
-        texas_holdem::join_game(p1, game_addr, c1);
-        texas_holdem::join_game(p2, game_addr, c2);
-        texas_holdem::join_game(p3, game_addr, c3);
-        texas_holdem::join_game(p4, game_addr, c4);
-        texas_holdem::join_game(p5, game_addr, c5);
+        // Same hand = tie
+        assert!(hand_eval::compare_hands(5, 100, 5, 100) == 0, 3);
         
-        texas_holdem::reveal_secret(p1, game_addr, s1);
-        texas_holdem::reveal_secret(p1, game_addr, s1); // Should fail
+        // Flush beats straight
+        assert!(hand_eval::compare_hands(5, 0, 4, 12) == 1, 4);
     }
 
-    #[test(admin = @holdemgame, non_player = @0x99)]
-    #[expected_failure(abort_code = 9)] // E_WRONG_PHASE
-    fun test_reveal_fails_in_wrong_phase(admin: &signer, non_player: &signer) {
-        texas_holdem::init(admin);
-        let game_addr = signer::address_of(admin);
+    #[test]
+    fun test_wheel_straight() {
+        // Wheel: A-2-3-4-5 (ace-low straight)
+        let cards = vector[
+            make_card(12, 0),  // Ac
+            make_card(0, 1),   // 2d
+            make_card(1, 2),   // 3h
+            make_card(2, 3),   // 4s
+            make_card(3, 0),   // 5c
+            make_card(9, 1),   // Jd
+            make_card(11, 2),  // Kh
+        ];
         
-        // Try to reveal before anyone has joined (still in JOINING phase)
-        texas_holdem::reveal_secret(non_player, game_addr, b"secret"); // Should fail
-    }
-
-    // ============================================
-    // WINNER DETERMINATION TESTS
-    // ============================================
-
-    #[test(admin = @holdemgame, p1 = @0x1, p2 = @0x2, p3 = @0x3, p4 = @0x4, p5 = @0x5)]
-    fun test_view_winners_returns_at_least_one(
-        admin: &signer,
-        p1: &signer,
-        p2: &signer,
-        p3: &signer,
-        p4: &signer,
-        p5: &signer
-    ) {
-        texas_holdem::init(admin);
-        let game_addr = signer::address_of(admin);
-        
-        // Complete game setup
-        let (s1, c1) = create_secret_and_hash(b"secret1");
-        let (s2, c2) = create_secret_and_hash(b"secret2");
-        let (s3, c3) = create_secret_and_hash(b"secret3");
-        let (s4, c4) = create_secret_and_hash(b"secret4");
-        let (s5, c5) = create_secret_and_hash(b"secret5");
-        
-        texas_holdem::join_game(p1, game_addr, c1);
-        texas_holdem::join_game(p2, game_addr, c2);
-        texas_holdem::join_game(p3, game_addr, c3);
-        texas_holdem::join_game(p4, game_addr, c4);
-        texas_holdem::join_game(p5, game_addr, c5);
-        
-        texas_holdem::reveal_secret(p1, game_addr, s1);
-        texas_holdem::reveal_secret(p2, game_addr, s2);
-        texas_holdem::reveal_secret(p3, game_addr, s3);
-        texas_holdem::reveal_secret(p4, game_addr, s4);
-        texas_holdem::reveal_secret(p5, game_addr, s5);
-        
-        // Get winners
-        let winners = texas_holdem::view_winners(game_addr);
-        
-        // Must have at least one winner
-        assert!(vector::length(&winners) >= 1, 0);
-        
-        // Winners must be players
-        let i = 0;
-        let players = texas_holdem::view_players(game_addr);
-        while (i < vector::length(&winners)) {
-            let winner = *vector::borrow(&winners, i);
-            assert!(vector::contains(&players, &winner), 1);
-            i = i + 1;
-        };
-    }
-
-    // ============================================
-    // RESET TESTS
-    // ============================================
-
-    #[test(admin = @holdemgame, p1 = @0x1, p2 = @0x2, p3 = @0x3, p4 = @0x4, p5 = @0x5)]
-    fun test_reset_clears_game(
-        admin: &signer,
-        p1: &signer,
-        p2: &signer,
-        p3: &signer,
-        p4: &signer,
-        p5: &signer
-    ) {
-        texas_holdem::init(admin);
-        let game_addr = signer::address_of(admin);
-        
-        // Complete a full game
-        let (s1, c1) = create_secret_and_hash(b"secret1");
-        let (s2, c2) = create_secret_and_hash(b"secret2");
-        let (s3, c3) = create_secret_and_hash(b"secret3");
-        let (s4, c4) = create_secret_and_hash(b"secret4");
-        let (s5, c5) = create_secret_and_hash(b"secret5");
-        
-        texas_holdem::join_game(p1, game_addr, c1);
-        texas_holdem::join_game(p2, game_addr, c2);
-        texas_holdem::join_game(p3, game_addr, c3);
-        texas_holdem::join_game(p4, game_addr, c4);
-        texas_holdem::join_game(p5, game_addr, c5);
-        
-        texas_holdem::reveal_secret(p1, game_addr, s1);
-        texas_holdem::reveal_secret(p2, game_addr, s2);
-        texas_holdem::reveal_secret(p3, game_addr, s3);
-        texas_holdem::reveal_secret(p4, game_addr, s4);
-        texas_holdem::reveal_secret(p5, game_addr, s5);
-        
-        // Verify game is dealt
-        assert!(texas_holdem::view_game_state(game_addr) == STATE_DEALT, 0);
-        
-        // Reset
-        texas_holdem::reset(admin, game_addr);
-        
-        // Verify state is back to joining
-        assert!(texas_holdem::view_game_state(game_addr) == STATE_JOINING, 1);
-        
-        // Verify no players
-        assert!(texas_holdem::view_player_count(game_addr) == 0, 2);
-    }
-
-    #[test(admin = @holdemgame, non_admin = @0x99)]
-    #[expected_failure(abort_code = 1)] // E_NOT_ADMIN
-    fun test_reset_fails_for_non_admin(admin: &signer, non_admin: &signer) {
-        texas_holdem::init(admin);
-        let game_addr = signer::address_of(admin);
-        texas_holdem::reset(non_admin, game_addr); // Should fail - non_admin is not the admin
-    }
-
-    // ============================================
-    // DETERMINISM TESTS
-    // ============================================
-
-    #[test(admin = @holdemgame, p1 = @0x1, p2 = @0x2, p3 = @0x3, p4 = @0x4, p5 = @0x5)]
-    fun test_same_secrets_produce_same_cards(
-        admin: &signer,
-        p1: &signer,
-        p2: &signer,
-        p3: &signer,
-        p4: &signer,
-        p5: &signer
-    ) {
-        // First game
-        texas_holdem::init(admin);
-        let game_addr = signer::address_of(admin);
-        
-        let (s1, c1) = create_secret_and_hash(b"deterministic1");
-        let (s2, c2) = create_secret_and_hash(b"deterministic2");
-        let (s3, c3) = create_secret_and_hash(b"deterministic3");
-        let (s4, c4) = create_secret_and_hash(b"deterministic4");
-        let (s5, c5) = create_secret_and_hash(b"deterministic5");
-        
-        texas_holdem::join_game(p1, game_addr, c1);
-        texas_holdem::join_game(p2, game_addr, c2);
-        texas_holdem::join_game(p3, game_addr, c3);
-        texas_holdem::join_game(p4, game_addr, c4);
-        texas_holdem::join_game(p5, game_addr, c5);
-        
-        texas_holdem::reveal_secret(p1, game_addr, s1);
-        texas_holdem::reveal_secret(p2, game_addr, s2);
-        texas_holdem::reveal_secret(p3, game_addr, s3);
-        texas_holdem::reveal_secret(p4, game_addr, s4);
-        texas_holdem::reveal_secret(p5, game_addr, s5);
-        
-        let community_1 = texas_holdem::view_community_cards(game_addr);
-        let hole_1 = texas_holdem::view_hole_cards(game_addr, signer::address_of(p1));
-        
-        // Reset and play again with same secrets
-        texas_holdem::reset(admin, game_addr);
-        
-        texas_holdem::join_game(p1, game_addr, c1);
-        texas_holdem::join_game(p2, game_addr, c2);
-        texas_holdem::join_game(p3, game_addr, c3);
-        texas_holdem::join_game(p4, game_addr, c4);
-        texas_holdem::join_game(p5, game_addr, c5);
-        
-        texas_holdem::reveal_secret(p1, game_addr, s1);
-        texas_holdem::reveal_secret(p2, game_addr, s2);
-        texas_holdem::reveal_secret(p3, game_addr, s3);
-        texas_holdem::reveal_secret(p4, game_addr, s4);
-        texas_holdem::reveal_secret(p5, game_addr, s5);
-        
-        let community_2 = texas_holdem::view_community_cards(game_addr);
-        let hole_2 = texas_holdem::view_hole_cards(game_addr, signer::address_of(p1));
-        
-        // Same secrets should produce same cards
-        assert!(community_1 == community_2, 0);
-        assert!(hole_1 == hole_2, 1);
+        let (hand_type, tiebreaker) = hand_eval::evaluate_hand(cards);
+        assert!(hand_type == 4, 1); // STRAIGHT
+        assert!(tiebreaker == 3, 2); // 5-high
     }
 }
