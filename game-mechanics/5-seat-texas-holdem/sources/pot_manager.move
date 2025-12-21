@@ -139,6 +139,16 @@ module holdemgame::pot_manager {
         }
     }
 
+    /// Get all current bets as a vector
+    public fun get_current_bets(state: &PotState): vector<u64> {
+        state.current_bets
+    }
+
+    /// Get all total invested amounts as a vector
+    public fun get_total_invested(state: &PotState): vector<u64> {
+        state.total_invested
+    }
+
     // ============================================
     // POT COLLECTION
     // ============================================
@@ -445,7 +455,7 @@ module holdemgame::pot_manager {
         }
     }
 
-    public fun get_total_invested(state: &PotState, player_idx: u64): u64 {
+    public fun get_total_invested_by_player(state: &PotState, player_idx: u64): u64 {
         *vector::borrow(&state.total_invested, player_idx)
     }
 

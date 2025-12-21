@@ -1,90 +1,77 @@
-# Deployment - 5-Seat Texas Hold'em
+# Deployment Guide - 5-Seat Texas Hold'em
 
-## Testnet Deployment
+## Latest Deployment
 
-**Date:** December 21, 2025  
-**Network:** Cedra Testnet  
-**Version:** 1.0.0 (with enhancements)
+**Version:** 2.0.0 (Frontend Integration)  
+**Date:** 2025-12-21  
+**Network:** Cedra Testnet
 
 ### Contract Address
 ```
-0x736ddbfe79a688617f26c712f987d7e2127f6b5f537687d8ecef91be36aa557b
+0x88d4e49b9fbcd8abd778f94eba6cefe74f1e63e16b9623a26cf3e4f0fcee665f
 ```
 
-### Transaction Details
-| Field | Value |
-|-------|-------|
-| Transaction Hash | [`0xc598a85215b0baad7ec85cd0e39712dec9cb120c9d53acfc823af9ef17c79f56`](https://cedrascan.com/txn/0xc598a85215b0baad7ec85cd0e39712dec9cb120c9d53acfc823af9ef17c79f56?network=testnet) |
-| Sender | `0x736ddbfe79a688617f26c712f987d7e2127f6b5f537687d8ecef91be36aa557b` |
-| Gas Used | 19,414 |
-| Package Size | 38,823 bytes |
-| Status | ✅ Executed successfully |
+### Transaction
+- **Hash:** `0x6dc27dfbeb1098a48395bc776bdbec427d788d61851c165f35c091ff56abef41`
+- **Explorer:** [View on Cedrascan](https://cedrascan.com/txn/0x6dc27dfbeb1098a48395bc776bdbec427d788d61851c165f35c091ff56abef41?network=testnet)
+- **Status:** ✅ Executed successfully
+- **Gas Used:** 25,421 units
 
----
+### Deployed Modules
+- `chips` - Chip token system
+- `hand_eval` - Hand evaluation
+- `pot_manager` - Pot management
+- `poker_events` - 25 event types
+- `texas_holdem` - Core game logic
 
-## Deployed Modules
-
-| Module | Description |
-|--------|-------------|
-| `texas_holdem` | Core game logic |
-| `pot_manager` | Pot tracking & distribution |
-| `hand_eval` | Hand evaluation engine |
-| `chips` | Fungible chip token |
-
----
-
-## Profile
-
-```bash
-# Profile name
-holdem_testnet
-
-# To use this deployment
-cedra move run --profile holdem_testnet --function-id 0x736ddbfe79a688617f26c712f987d7e2127f6b5f537687d8ecef91be36aa557b::texas_holdem::<function>
-```
-
----
-
-## Features in This Deployment
-
-- ✅ **Odd chip fix** – Remainder goes to first-to-act winner
-- ✅ **Ante support** – Optional ante via `create_table`
-- ✅ **Straddle support** – UTG can post 2x BB blind
-- ✅ **Dead button tracking** – Fair blind rotation
-- ✅ **Timeout penalty** – 10% stake penalty for timeouts
-- ✅ **Service fees** – 0.3% (30 basis points)
+### Profile
+- **Name:** `holdem_v2`
+- **Network:** Testnet
 
 ---
 
 ## Quick Start
 
 ```bash
-# Set address
-export ADDR=0x736ddbfe79a688617f26c712f987d7e2127f6b5f537687d8ecef91be36aa557b
+# Set contract address
+export ADDR=0x88d4e49b9fbcd8abd778f94eba6cefe74f1e63e16b9623a26cf3e4f0fcee665f
 
-# Buy chips (0.1 CEDRA)
-cedra move run --profile holdem_testnet \
-  --function-id $ADDR::chips::buy_chips \
-  --args u64:10000000
+# Buy chips (0.1 CEDRA = 100 chips)
+cedra move run --function-id $ADDR::chips::buy_chips \
+  --args u64:100000000 --profile holdem_v2
 
-# Create table (5/10 blinds, no ante, straddle enabled)
-cedra move run --profile holdem_testnet \
-  --function-id $ADDR::texas_holdem::create_table \
-  --args u64:5 u64:10 u64:100 u64:10000 address:$ADDR u64:0 bool:true
+# Create table (5/10 blinds, 100-10000 buy-in, no ante, straddle enabled)
+cedra move run --function-id $ADDR::texas_holdem::create_table \
+  --args u64:5 u64:10 u64:100 u64:10000 address:$ADDR u64:0 bool:true \
+  --profile holdem_v2
 
-# View your chip balance
-cedra move view --function-id $ADDR::chips::balance \
-  --args address:$(cedra account lookup-address --profile holdem_testnet)
+# Join table at seat 0 with 500 chips
+cedra move run --function-id $ADDR::texas_holdem::join_table \
+  --args address:$ADDR u64:0 u64:500 --profile holdem_v2
+
+# Start hand
+cedra move run --function-id $ADDR::texas_holdem::start_hand \
+  --args address:$ADDR --profile holdem_v2
 ```
+
+---
+
+## Previous Deployments
+
+| Version | Date | Address | Notes |
+|---------|------|---------|-------|
+| 1.0.0 | 2025-12-21 | `0x736ddb...557b` | Initial edge-case fixes |
+| 2.0.0 | 2025-12-21 | `0x88d4e4...665f` | Frontend integration |
 
 ---
 
 ## Redeployment
 
-To redeploy with changes:
-
 ```bash
-cedra move publish --profile holdem_testnet --assume-yes
-```
+# Create new profile
+cedra init --profile <name> --network testnet --assume-yes
 
-> **Note:** The `upgrade_policy` is set to `compatible`, meaning only backwards-compatible changes are allowed.
+# Deploy
+cedra move publish --profile <name> \
+  --named-addresses holdemgame=<name> --assume-yes
+```
