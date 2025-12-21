@@ -294,9 +294,9 @@ cedra move compile
 cedra move publish --profile <profile> --assume-yes
 ```
 
-### Contract Address (Devnet)
+### Contract Address (Testnet)
 ```
-0x9fb25fa02074be167f6133a9bba33811c17f651578f4f8fef58c8bb73b910261
+0x736ddbfe79a688617f26c712f987d7e2127f6b5f537687d8ecef91be36aa557b
 ```
 
 ---
@@ -304,9 +304,12 @@ cedra move publish --profile <profile> --assume-yes
 ## Usage Example
 
 ```bash
-# Create table (5/10 blinds, 100-10000 buy-in)
+# Set address variable
+ADDR=0x736ddbfe79a688617f26c712f987d7e2127f6b5f537687d8ecef91be36aa557b
+
+# Create table (5/10 blinds, 100-10000 buy-in, fee goes to self, no ante, straddle enabled)
 cedra move run --function-id $ADDR::texas_holdem::create_table \
-  --args u64:5 u64:10 u64:100 u64:10000
+  --args u64:5 u64:10 u64:100 u64:10000 address:$ADDR u64:0 bool:true
 
 # Buy chips (0.1 CEDRA = 100 chips)
 cedra move run --function-id $ADDR::chips::buy_chips \

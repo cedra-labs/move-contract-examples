@@ -2,7 +2,8 @@
 
 **Date:** 2025-12-21  
 **Framework:** Cedra Move Test Framework  
-**Status:** ✅ All Tests Passing
+**Status:** ✅ All Tests Passing  
+**Version:** 1.0.0 (with 5 enhancements)
 
 ---
 
@@ -14,6 +15,13 @@
 | Passed | 32 |
 | Failed | 0 |
 | Coverage | 4 modules |
+
+### Enhancements Verified
+- ✅ Odd chip fix (first-to-act gets remainder)
+- ✅ Ante support
+- ✅ Dead button tracking
+- ✅ Straddle action
+- ✅ Timeout penalty (10%)
 
 ---
 
