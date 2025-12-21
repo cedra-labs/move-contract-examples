@@ -128,6 +128,7 @@ struct Pot {
 - Created when a player goes all-in for less than max bet
 - Each pot tracks which players are eligible
 - Distribution iterates through pots, awarding to best hand among eligible
+- **Odd chip goes to first-to-act winner** (closest left of dealer button)
 
 ---
 
@@ -161,7 +162,7 @@ Main game orchestration module.
 
 **Table Management**
 ```move
-create_table(admin, small_blind, big_blind, min_buy_in, max_buy_in)
+create_table(admin, small_blind, big_blind, min_buy_in, max_buy_in, fee_recipient, ante, straddle_enabled)
 join_table(player, table_addr, seat_idx, buy_in_chips)
 leave_table(player, table_addr)
 ```
@@ -180,6 +181,7 @@ check(player, table_addr)
 call(player, table_addr)
 raise_to(player, table_addr, total_bet)
 all_in(player, table_addr)
+straddle(player, table_addr)  // Optional 2x BB from UTG
 ```
 
 **Timeout Handling**

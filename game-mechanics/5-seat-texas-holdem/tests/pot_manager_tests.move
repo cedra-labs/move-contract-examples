@@ -127,7 +127,8 @@ module holdemgame::pot_manager_tests {
         ];
         
         let active = vector[true, true];
-        let distributions = pot_manager::calculate_distribution(&state, &hand_rankings, &active);
+        // dealer_hand_idx=0, num_players=2
+        let distributions = pot_manager::calculate_distribution(&state, &hand_rankings, &active, 0, 2);
         
         // Player 0 should win entire pot
         assert!(std::vector::length(&distributions) == 1, 1);
@@ -153,7 +154,8 @@ module holdemgame::pot_manager_tests {
         ];
         
         let active = vector[true, true];
-        let distributions = pot_manager::calculate_distribution(&state, &hand_rankings, &active);
+        // dealer_hand_idx=0, num_players=2
+        let distributions = pot_manager::calculate_distribution(&state, &hand_rankings, &active, 0, 2);
         
         // Both should split - 100 each
         assert!(std::vector::length(&distributions) == 2, 1);

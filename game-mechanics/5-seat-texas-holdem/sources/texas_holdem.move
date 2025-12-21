@@ -41,6 +41,10 @@ module holdemgame::texas_holdem {
     const E_BUY_IN_TOO_HIGH: u64 = 19;
     const E_ALREADY_REVEALED: u64 = 20;
     const E_NO_TIMEOUT: u64 = 21;
+    const E_STRADDLE_NOT_ALLOWED: u64 = 22;
+    const E_STRADDLE_ALREADY_POSTED: u64 = 23;
+    const E_NOT_UTG: u64 = 24;
+    const TIMEOUT_PENALTY_PERCENT: u64 = 10;  // 10% of stack as timeout penalty
 
     // ============================================
     // GAME STATE CONSTANTS
@@ -74,6 +78,8 @@ module holdemgame::texas_holdem {
         big_blind: u64,
         min_buy_in: u64,
         max_buy_in: u64,
+        ante: u64,              // Optional ante (0 = no ante)
+        straddle_enabled: bool, // Allow voluntary straddle
     }
 
     struct Seat has store, copy, drop {
@@ -97,6 +103,8 @@ module holdemgame::texas_holdem {
         min_raise: u64,
         last_aggressor: Option<u64>,
         has_acted_mask: vector<bool>,  // Track who has acted this betting round
+        straddle_hand_idx: Option<u64>, // Who straddled (if any)
+        straddle_amount: u64,           // Straddle amount (0 if none)
         commits: vector<vector<u8>>,
         secrets: vector<vector<u8>>,
         // Timeout deadlines
@@ -113,6 +121,9 @@ module holdemgame::texas_holdem {
         hand_number: u64,
         fee_recipient: address,
         total_fees_collected: u64,
+        // Dead button tracking
+        next_bb_seat: u64,           // Seat that owes big blind next
+        missed_blinds: vector<u64>,  // Missed blind amounts per seat
     }
 
     // ============================================
@@ -125,20 +136,24 @@ module holdemgame::texas_holdem {
         big_blind: u64,
         min_buy_in: u64,
         max_buy_in: u64,
-        fee_recipient: address
+        fee_recipient: address,
+        ante: u64,
+        straddle_enabled: bool
     ) {
         let admin_addr = signer::address_of(admin);
         assert!(!exists<Table>(admin_addr), E_TABLE_EXISTS);
         
         let seats = vector::empty<Option<Seat>>();
+        let missed_blinds = vector::empty<u64>();
         let i = 0u64;
         while (i < MAX_PLAYERS) {
             vector::push_back(&mut seats, option::none());
+            vector::push_back(&mut missed_blinds, 0);
             i = i + 1;
         };
         
         move_to(admin, Table {
-            config: TableConfig { small_blind, big_blind, min_buy_in, max_buy_in },
+            config: TableConfig { small_blind, big_blind, min_buy_in, max_buy_in, ante, straddle_enabled },
             admin: admin_addr,
             seats,
             game: option::none(),
@@ -146,6 +161,8 @@ module holdemgame::texas_holdem {
             hand_number: 0,
             fee_recipient,
             total_fees_collected: 0,
+            next_bb_seat: 0,
+            missed_blinds,
         });
     }
 
@@ -236,6 +253,8 @@ module holdemgame::texas_holdem {
             min_raise: table.config.big_blind,
             last_aggressor: option::none(),
             has_acted_mask,
+            straddle_hand_idx: option::none(),
+            straddle_amount: 0,
             commits,
             secrets,
             commit_deadline: timestamp::now_seconds() + COMMIT_REVEAL_TIMEOUT_SECS,
@@ -306,6 +325,11 @@ module holdemgame::texas_holdem {
             shuffle_deck_internal(game_mut);
             deal_hole_cards_internal(game_mut);
             
+            // Post antes first (if configured)
+            let ante = table.config.ante;
+            post_antes_internal(game_mut, &mut table.seats, ante);
+            
+            // Then post blinds
             let bb_amount = table.config.big_blind;
             let sb_amount = table.config.small_blind;
             post_blinds_internal(game_mut, &mut table.seats, sb_amount, bb_amount);
@@ -500,10 +524,67 @@ module holdemgame::texas_holdem {
         advance_action_internal(table);
     }
 
+    /// Post a straddle (voluntary third blind, 2x big blind)
+    /// 
+    /// Can only be called by UTG player during preflop before any other action.
+    /// Straddler gets last action preflop (acts as if they posted BB).
+    public entry fun straddle(player: &signer, table_addr: address) acquires Table {
+        assert!(exists<Table>(table_addr), E_TABLE_NOT_FOUND);
+        let table = borrow_global_mut<Table>(table_addr);
+        assert!(option::is_some(&table.game), E_NO_GAME);
+        assert!(table.config.straddle_enabled, E_STRADDLE_NOT_ALLOWED);
+        
+        let player_addr = signer::address_of(player);
+        let game = option::borrow(&table.game);
+        
+        // Must be preflop
+        assert!(game.phase == PHASE_PREFLOP, E_WRONG_PHASE);
+        // No straddle already posted
+        assert!(option::is_none(&game.straddle_hand_idx), E_STRADDLE_ALREADY_POSTED);
+        
+        // Must be UTG (player whose turn it is at start of preflop action)
+        let hand_idx = find_player_hand_idx(&game.players_in_hand, &table.seats, player_addr);
+        assert!(game.action_on == hand_idx, E_NOT_YOUR_TURN);
+        
+        // Verify player hasn't acted yet (straddle must be first action)
+        assert!(!*vector::borrow(&game.has_acted_mask, hand_idx), E_INVALID_ACTION);
+        
+        let straddle_amount = table.config.big_blind * 2;
+        let seat_idx = *vector::borrow(&game.players_in_hand, hand_idx);
+        
+        // Check sufficient chips
+        let seat = option::borrow(vector::borrow(&table.seats, seat_idx));
+        assert!(seat.chip_count >= straddle_amount, E_INSUFFICIENT_CHIPS);
+        
+        {
+            let game_mut = option::borrow_mut(&mut table.game);
+            let seat_mut = option::borrow_mut(vector::borrow_mut(&mut table.seats, seat_idx));
+            
+            seat_mut.chip_count = seat_mut.chip_count - straddle_amount;
+            pot_manager::add_bet(&mut game_mut.pot_state, hand_idx, straddle_amount);
+            
+            game_mut.straddle_hand_idx = option::some(hand_idx);
+            game_mut.straddle_amount = straddle_amount;
+            game_mut.min_raise = straddle_amount;  // New min raise = straddle amount
+            
+            // Mark straddle as NOT acted (they get option to raise later)
+            // Move action to next player after straddler
+            let num_players = vector::length(&game_mut.players_in_hand);
+            game_mut.action_on = (hand_idx + 1) % num_players;
+            
+            // Skip non-active players
+            while (*vector::borrow(&game_mut.player_status, game_mut.action_on) != STATUS_ACTIVE) {
+                game_mut.action_on = (game_mut.action_on + 1) % num_players;
+            };
+            
+            game_mut.action_deadline = timestamp::now_seconds() + ACTION_TIMEOUT_SECS;
+        };
+    }
+
     /// Handle timeouts for commit/reveal/action phases
     /// 
     /// Anyone can call this to enforce timeouts. Effects depend on phase:
-    /// - COMMIT/REVEAL: Abort hand, return chips, mark non-compliers as sitting out
+    /// - COMMIT/REVEAL: Apply 10% penalty, mark as sitting out, abort if <2 players remain
     /// - PREFLOP-RIVER: Auto-fold the timed-out player
     public entry fun handle_timeout(table_addr: address) acquires Table {
         assert!(exists<Table>(table_addr), E_TABLE_NOT_FOUND);
@@ -517,33 +598,53 @@ module holdemgame::texas_holdem {
         if (phase == PHASE_COMMIT) {
             // Check commit timeout
             assert!(now > game.commit_deadline, E_NO_TIMEOUT);
-            // Mark all players who didn't commit as sitting out
+            
+            let penalized = 0u64;
             let i = 0u64;
             while (i < vector::length(&game.commits)) {
                 if (vector::is_empty(vector::borrow(&game.commits, i))) {
                     let seat_idx = *vector::borrow(&game.players_in_hand, i);
                     let seat = option::borrow_mut(vector::borrow_mut(&mut table.seats, seat_idx));
+                    
+                    // Apply 10% penalty
+                    let penalty = (seat.chip_count * TIMEOUT_PENALTY_PERCENT) / 100;
+                    if (penalty > 0) {
+                        seat.chip_count = seat.chip_count - penalty;
+                        table.total_fees_collected = table.total_fees_collected + penalty;
+                    };
+                    
                     seat.is_sitting_out = true;
+                    penalized = penalized + 1;
                 };
                 i = i + 1;
             };
-            // Abort the hand
+            // Abort the hand (can't continue without all entropy)
             table.game = option::none();
+            
         } else if (phase == PHASE_REVEAL) {
             // Check reveal timeout
             assert!(now > game.reveal_deadline, E_NO_TIMEOUT);
-            // Mark all players who didn't reveal as sitting out
+            
             let i = 0u64;
             while (i < vector::length(&game.secrets)) {
                 if (vector::is_empty(vector::borrow(&game.secrets, i))) {
                     let seat_idx = *vector::borrow(&game.players_in_hand, i);
                     let seat = option::borrow_mut(vector::borrow_mut(&mut table.seats, seat_idx));
+                    
+                    // Apply 10% penalty
+                    let penalty = (seat.chip_count * TIMEOUT_PENALTY_PERCENT) / 100;
+                    if (penalty > 0) {
+                        seat.chip_count = seat.chip_count - penalty;
+                        table.total_fees_collected = table.total_fees_collected + penalty;
+                    };
+                    
                     seat.is_sitting_out = true;
                 };
                 i = i + 1;
             };
             // Abort the hand
             table.game = option::none();
+            
         } else if (phase >= PHASE_PREFLOP && phase <= PHASE_RIVER) {
             // Check action timeout
             assert!(now > game.action_deadline, E_NO_TIMEOUT);
@@ -552,6 +653,7 @@ module holdemgame::texas_holdem {
             {
                 let game_mut = option::borrow_mut(&mut table.game);
                 *vector::borrow_mut(&mut game_mut.player_status, action_on) = STATUS_FOLDED;
+                *vector::borrow_mut(&mut game_mut.has_acted_mask, action_on) = true;
             };
             advance_action_internal(table);
         };
@@ -700,7 +802,14 @@ module holdemgame::texas_holdem {
         
         let active = get_non_folded_mask_internal(game);
         let game = option::borrow(&table.game);
-        let distributions = pot_manager::calculate_distribution(&game.pot_state, &hand_rankings, &active);
+        let dealer_hand_idx = get_dealer_hand_idx_internal(game);
+        let distributions = pot_manager::calculate_distribution(
+            &game.pot_state, 
+            &hand_rankings, 
+            &active,
+            dealer_hand_idx,
+            num_players
+        );
         
         let game = option::borrow(&table.game);
         let players_in_hand = game.players_in_hand;
@@ -962,6 +1071,28 @@ module holdemgame::texas_holdem {
         pot_manager::add_bet(&mut game.pot_state, bb_hand_idx, bb_amount);
         
         game.min_raise = bb;
+    }
+
+    /// Post antes from all players (called before blinds)
+    fun post_antes_internal(game: &mut Game, seats: &mut vector<Option<Seat>>, ante: u64) {
+        if (ante == 0) { return };
+        
+        let num_players = vector::length(&game.players_in_hand);
+        let i = 0u64;
+        while (i < num_players) {
+            let seat_idx = *vector::borrow(&game.players_in_hand, i);
+            let ante_amount = ante;
+            {
+                let seat = option::borrow_mut(vector::borrow_mut(seats, seat_idx));
+                if (seat.chip_count < ante_amount) {
+                    ante_amount = seat.chip_count;
+                    *vector::borrow_mut(&mut game.player_status, i) = STATUS_ALL_IN;
+                };
+                seat.chip_count = seat.chip_count - ante_amount;
+            };
+            pot_manager::add_bet(&mut game.pot_state, i, ante_amount);
+            i = i + 1;
+        };
     }
 
     fun get_dealer_hand_idx_internal(game: &Game): u64 {

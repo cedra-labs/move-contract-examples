@@ -275,10 +275,14 @@ module holdemgame::pot_manager {
     // ============================================
 
     /// Calculate pot distribution based on winners
+    /// 
+    /// Odd chips from split pots go to the winner closest to dealer's left (first to act)
     public fun calculate_distribution(
         state: &PotState,
         hand_rankings: &vector<HandRanking>,
-        active_players: &vector<bool>
+        active_players: &vector<bool>,
+        dealer_hand_idx: u64,
+        num_players: u64
     ): vector<Distribution> {
         let distributions = vector::empty<Distribution>();
         
@@ -295,11 +299,14 @@ module holdemgame::pot_manager {
                     let share = pot.amount / num_winners;
                     let remainder = pot.amount % num_winners;
                     
+                    // Find who gets the odd chip (first to act among winners)
+                    let odd_chip_winner_idx = find_first_to_act(&winners, dealer_hand_idx, num_players);
+                    
                     let w = 0u64;
                     while (w < num_winners) {
                         let winner_idx = *vector::borrow(&winners, w);
                         let amount = share;
-                        if (w == 0) {
+                        if (w == odd_chip_winner_idx) {
                             amount = amount + remainder;
                         };
                         add_to_distribution(&mut distributions, winner_idx, amount);
@@ -353,6 +360,30 @@ module holdemgame::pot_manager {
         };
         
         winners
+    }
+
+    /// Find the index within winners vector of the player closest to dealer's left (first to act)
+    /// This player receives the odd chip in split pot scenarios per casino rules
+    fun find_first_to_act(winners: &vector<u64>, dealer_idx: u64, num_players: u64): u64 {
+        let best_winner_vec_idx = 0u64;
+        let best_distance = num_players + 1;
+        
+        let w = 0u64;
+        while (w < vector::length(winners)) {
+            let player_idx = *vector::borrow(winners, w);
+            // Distance from dealer going clockwise (left of dealer = 1, etc.)
+            let distance = if (player_idx > dealer_idx) {
+                player_idx - dealer_idx
+            } else {
+                num_players - dealer_idx + player_idx
+            };
+            if (distance < best_distance) {
+                best_distance = distance;
+                best_winner_vec_idx = w;
+            };
+            w = w + 1;
+        };
+        best_winner_vec_idx
     }
 
     fun add_to_distribution(
