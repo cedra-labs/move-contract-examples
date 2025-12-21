@@ -96,6 +96,7 @@ module holdemgame::texas_holdem {
         dealer_position: u64,
         min_raise: u64,
         last_aggressor: Option<u64>,
+        has_acted_mask: vector<bool>,  // Track who has acted this betting round
         commits: vector<vector<u8>>,
         secrets: vector<vector<u8>>,
         // Timeout deadlines
@@ -208,6 +209,7 @@ module holdemgame::texas_holdem {
         let commits = vector::empty<vector<u8>>();
         let secrets = vector::empty<vector<u8>>();
         let hole_cards = vector::empty<vector<u8>>();
+        let has_acted_mask = vector::empty<bool>();
         
         let i = 0u64;
         while (i < num_players) {
@@ -215,6 +217,7 @@ module holdemgame::texas_holdem {
             vector::push_back(&mut commits, vector::empty());
             vector::push_back(&mut secrets, vector::empty());
             vector::push_back(&mut hole_cards, vector::empty());
+            vector::push_back(&mut has_acted_mask, false);
             i = i + 1;
         };
         
@@ -232,6 +235,7 @@ module holdemgame::texas_holdem {
             dealer_position: table.dealer_button,
             min_raise: table.config.big_blind,
             last_aggressor: option::none(),
+            has_acted_mask,
             commits,
             secrets,
             commit_deadline: timestamp::now_seconds() + COMMIT_REVEAL_TIMEOUT_SECS,
@@ -309,7 +313,12 @@ module holdemgame::texas_holdem {
             game_mut.phase = PHASE_PREFLOP;
             let num_players = vector::length(&game_mut.players_in_hand);
             let bb_hand_idx = get_big_blind_hand_idx_internal(game_mut);
-            game_mut.action_on = (bb_hand_idx + 1) % num_players;
+            // Heads-up: dealer (SB) acts first preflop
+            if (num_players == 2) {
+                game_mut.action_on = get_small_blind_hand_idx_internal(game_mut);
+            } else {
+                game_mut.action_on = (bb_hand_idx + 1) % num_players;
+            };
             game_mut.action_deadline = timestamp::now_seconds() + ACTION_TIMEOUT_SECS;
         };
     }
@@ -330,6 +339,7 @@ module holdemgame::texas_holdem {
         
         let game_mut = option::borrow_mut(&mut table.game);
         *vector::borrow_mut(&mut game_mut.player_status, hand_idx) = STATUS_FOLDED;
+        *vector::borrow_mut(&mut game_mut.has_acted_mask, hand_idx) = true;
         
         advance_action_internal(table);
     }
@@ -346,6 +356,10 @@ module holdemgame::texas_holdem {
         
         let call_amount = pot_manager::get_call_amount(&game.pot_state, hand_idx);
         assert!(call_amount == 0, E_INVALID_ACTION);
+        
+        // Mark player as having acted
+        let game_mut = option::borrow_mut(&mut table.game);
+        *vector::borrow_mut(&mut game_mut.has_acted_mask, hand_idx) = true;
         
         advance_action_internal(table);
     }
@@ -370,6 +384,7 @@ module holdemgame::texas_holdem {
             let seat_mut = option::borrow_mut(vector::borrow_mut(&mut table.seats, seat_idx));
             seat_mut.chip_count = seat_mut.chip_count - actual_amount;
             pot_manager::add_bet(&mut game_mut.pot_state, hand_idx, actual_amount);
+            *vector::borrow_mut(&mut game_mut.has_acted_mask, hand_idx) = true;
             if (seat_mut.chip_count == 0) {
                 *vector::borrow_mut(&mut game_mut.player_status, hand_idx) = STATUS_ALL_IN;
             };
@@ -413,6 +428,10 @@ module holdemgame::texas_holdem {
             pot_manager::add_bet(&mut game_mut.pot_state, hand_idx, add_amount);
             game_mut.min_raise = raise_amount;
             game_mut.last_aggressor = option::some(hand_idx);
+            
+            // Raise reopens betting: reset acted mask for all others, mark raiser as acted
+            reset_acted_mask_except(game_mut, hand_idx);
+            
             if (seat_mut.chip_count == 0) {
                 *vector::borrow_mut(&mut game_mut.player_status, hand_idx) = STATUS_ALL_IN;
             };
@@ -449,13 +468,17 @@ module holdemgame::texas_holdem {
             // Calculate the new bet total after adding all_in_amount
             let new_total_bet = current_bet + all_in_amount;
             
-            // Only set last_aggressor if this constitutes a valid raise
+            // Only set last_aggressor and reopen betting if this constitutes a valid raise
             // (new total bet exceeds max_bet by at least min_raise)
             if (new_total_bet > max_bet && (new_total_bet - max_bet) >= min_raise) {
                 game_mut.last_aggressor = option::some(hand_idx);
                 game_mut.min_raise = new_total_bet - max_bet;
+                // Valid raise reopens betting
+                reset_acted_mask_except(game_mut, hand_idx);
+            } else {
+                // Short all-in: just mark as acted, don't reopen betting
+                *vector::borrow_mut(&mut game_mut.has_acted_mask, hand_idx) = true;
             };
-            // Short all-ins (< min_raise) don't reopen betting
         };
         
         advance_action_internal(table);
@@ -551,10 +574,21 @@ module holdemgame::texas_holdem {
     }
 
     fun advance_phase_internal(table: &mut Table) {
+        let bb = table.config.big_blind;
         let game_mut = option::borrow_mut(&mut table.game);
         game_mut.last_aggressor = option::none();
         
+        // Reset min_raise to big blind for new street
+        game_mut.min_raise = bb;
+        
+        // Reset has_acted_mask for new betting round
         let num_players = vector::length(&game_mut.players_in_hand);
+        let i = 0u64;
+        while (i < num_players) {
+            *vector::borrow_mut(&mut game_mut.has_acted_mask, i) = false;
+            i = i + 1;
+        };
+        
         let dealer_hand_idx = get_dealer_hand_idx_internal(game_mut);
         game_mut.action_on = (dealer_hand_idx + 1) % num_players;
         
@@ -563,6 +597,8 @@ module holdemgame::texas_holdem {
         while (*vector::borrow(&game_mut.player_status, game_mut.action_on) != STATUS_ACTIVE) {
             game_mut.action_on = (game_mut.action_on + 1) % num_players;
             if (game_mut.action_on == start) {
+                // No active players - run out remaining community cards before showdown
+                run_all_in_runout_internal(game_mut);
                 game_mut.phase = PHASE_SHOWDOWN;
                 run_showdown_internal(table);
                 return
@@ -586,6 +622,15 @@ module holdemgame::texas_holdem {
         };
         
         game_mut.action_deadline = timestamp::now_seconds() + ACTION_TIMEOUT_SECS;
+    }
+
+    /// Deal remaining community cards when all players are all-in
+    fun run_all_in_runout_internal(game: &mut Game) {
+        let community_len = vector::length(&game.community_cards);
+        if (community_len < 5) {
+            let remaining = 5 - community_len;
+            deal_community_cards_internal(game, remaining);
+        };
     }
 
     fun run_showdown_internal(table: &mut Table) {
@@ -717,6 +762,25 @@ module holdemgame::texas_holdem {
         let hand_idx = find_player_hand_idx(&game.players_in_hand, seats, player);
         assert!(game.action_on == hand_idx, E_NOT_YOUR_TURN);
         assert!(*vector::borrow(&game.player_status, hand_idx) == STATUS_ACTIVE, E_INVALID_ACTION);
+    }
+
+    /// Reset has_acted_mask for all players except the specified one (the raiser).
+    /// Called when a raise reopens betting.
+    fun reset_acted_mask_except(game: &mut Game, except_idx: u64) {
+        let num = vector::length(&game.has_acted_mask);
+        let i = 0u64;
+        while (i < num) {
+            if (i == except_idx) {
+                *vector::borrow_mut(&mut game.has_acted_mask, i) = true;
+            } else {
+                let status = *vector::borrow(&game.player_status, i);
+                // Only reset for ACTIVE players (folded/all-in don't need to act)
+                if (status == STATUS_ACTIVE) {
+                    *vector::borrow_mut(&mut game.has_acted_mask, i) = false;
+                };
+            };
+            i = i + 1;
+        };
     }
 
     fun get_active_seat_indices_internal(table: &Table): vector<u64> {
@@ -870,12 +934,20 @@ module holdemgame::texas_holdem {
     fun get_small_blind_hand_idx_internal(game: &Game): u64 {
         let dealer_idx = get_dealer_hand_idx_internal(game);
         let num = vector::length(&game.players_in_hand);
+        // Heads-up: dealer posts the small blind
+        if (num == 2) {
+            return dealer_idx
+        };
         (dealer_idx + 1) % num
     }
 
     fun get_big_blind_hand_idx_internal(game: &Game): u64 {
         let dealer_idx = get_dealer_hand_idx_internal(game);
         let num = vector::length(&game.players_in_hand);
+        // Heads-up: non-dealer posts the big blind
+        if (num == 2) {
+            return (dealer_idx + 1) % num
+        };
         (dealer_idx + 2) % num
     }
 
@@ -898,6 +970,9 @@ module holdemgame::texas_holdem {
         while (i < num) {
             let status = *vector::borrow(&game.player_status, i);
             if (status == STATUS_ACTIVE) {
+                // Player must have acted this round
+                if (!*vector::borrow(&game.has_acted_mask, i)) { return false };
+                // All bets must be matched
                 let bet = pot_manager::get_current_bet(&game.pot_state, i);
                 if (bet < max_bet) { return false };
             };

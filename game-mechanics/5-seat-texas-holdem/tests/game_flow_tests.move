@@ -6,7 +6,6 @@
 #[test_only]
 module holdemgame::game_flow_tests {
     use std::signer;
-    use std::vector;
     use holdemgame::texas_holdem;
     use holdemgame::chips;
 
@@ -31,7 +30,7 @@ module holdemgame::game_flow_tests {
     }
 
     #[test(admin = @holdemgame)]
-    #[expected_failure(abort_code = 2)] // E_TABLE_EXISTS
+    #[expected_failure(abort_code = 2, location = holdemgame::texas_holdem)] // E_TABLE_EXISTS
     fun test_create_duplicate_table_fails(admin: &signer) {
         setup_table(admin);
         // Try to create another table at same address
@@ -39,7 +38,7 @@ module holdemgame::game_flow_tests {
     }
 
     #[test(admin = @holdemgame, player = @0xBEEF)]
-    #[expected_failure(abort_code = 10)] // E_INSUFFICIENT_CHIPS
+    #[expected_failure(abort_code = 10, location = holdemgame::texas_holdem)] // E_INSUFFICIENT_CHIPS
     fun test_join_without_chips_fails(admin: &signer, player: &signer) {
         setup_table(admin);
         
@@ -48,7 +47,7 @@ module holdemgame::game_flow_tests {
     }
 
     #[test(admin = @holdemgame, player = @0xBEEF)]
-    #[expected_failure(abort_code = 18)] // E_BUY_IN_TOO_LOW
+    #[expected_failure(abort_code = 18, location = holdemgame::texas_holdem)] // E_BUY_IN_TOO_LOW
     fun test_join_with_low_buyin_fails(admin: &signer, player: &signer) {
         setup_table(admin);
         
@@ -60,7 +59,7 @@ module holdemgame::game_flow_tests {
     }
 
     #[test(admin = @holdemgame, player = @0xBEEF)]
-    #[expected_failure(abort_code = 19)] // E_BUY_IN_TOO_HIGH
+    #[expected_failure(abort_code = 19, location = holdemgame::texas_holdem)] // E_BUY_IN_TOO_HIGH
     fun test_join_with_high_buyin_fails(admin: &signer, player: &signer) {
         setup_table(admin);
         
@@ -97,7 +96,7 @@ module holdemgame::game_flow_tests {
     }
 
     #[test(admin = @holdemgame, p1 = @0xAAA, p2 = @0xBBB)]
-    #[expected_failure(abort_code = 4)] // E_SEAT_TAKEN
+    #[expected_failure(abort_code = 4, location = holdemgame::texas_holdem)] // E_SEAT_TAKEN
     fun test_join_taken_seat_fails(admin: &signer, p1: &signer, p2: &signer) {
         setup_table(admin);
         let admin_addr = signer::address_of(admin);

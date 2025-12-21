@@ -234,6 +234,57 @@ Entropy improvement: Uses 8 bytes (u64) per shuffle swap instead of 1 byte.
 
 ---
 
+## Betting Round Completion
+
+A betting round is complete when:
+1. All ACTIVE players have acted at least once this round
+2. All ACTIVE players have matched the current bet
+
+This ensures:
+- **Check-around rounds**: Even when no bet is placed, all players must act before the round closes
+- **Raise orbits**: When a raise occurs, all other active players' "acted" status resets, requiring another action
+
+The min-raise resets to the big blind at the start of each new street (flop, turn, river).
+
+---
+
+## Heads-Up Play Rules
+
+When only 2 players remain (heads-up):
+
+| Position | Role | Pre-Flop Action |
+|----------|------|-----------------|
+| Dealer | Small Blind | Acts first |
+| Non-Dealer | Big Blind | Acts second |
+
+Post-flop follows standard rules: first active player after dealer acts first.
+
+---
+
+## All-In Runout
+
+When all remaining players are all-in (no ACTIVE players):
+1. Remaining community cards (up to 5) are dealt automatically
+2. Showdown proceeds immediately
+
+This prevents betting phases that have no participants.
+
+---
+
+## Service Fees
+
+A 0.3% (30 basis points) service fee is deducted from pot winnings:
+
+```move
+FEE_BASIS_POINTS = 30  // 30/10000 = 0.3%
+```
+
+- Fee applies to all pot distributions (showdown and fold wins)
+- Fee is sent to the `fee_recipient` address specified at table creation
+- Total fees collected are tracked in `total_fees_collected`
+
+---
+
 ## Deployment
 
 ```bash
