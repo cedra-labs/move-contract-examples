@@ -4,7 +4,7 @@ version = "1.0.0"
 authors = []
 
 [addresses]
-AuctionDutchNFT = "0xbb069da2302ce3a4e75d57238b230a62fd7f272870fcee2c005067d970068805"
+AuctionDutchNFT = "_"
 
 [dev-addresses]
 AuctionDutchNFT = "0xcafe"

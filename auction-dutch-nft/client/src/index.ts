@@ -2,12 +2,12 @@ import { Account, AccountAddress, Cedra, CedraConfig, Network } from "@cedra-lab
 
 // Constants
 const NETWORK = Network.TESTNET;
-const MODULE_ADDRESS = "0xbb069da2302ce3a4e75d57238b230a62fd7f272870fcee2c005067d970068805"; // Replace with your deployed contract address
+const MODULE_ADDRESS = "_"; // Replace with your deployed contract address
 const MODULE_NAME = "DutchAuction";
 const MODULE_FULL_PATH = `${MODULE_ADDRESS}::${MODULE_NAME}`;
 
 // NFT Module (optional - if set, will mint an NFT first)
-const NFT_MODULE_ADDRESS = "0xbb069da2302ce3a4e75d57238b230a62fd7f272870fcee2c005067d970068805"; // NFT contract address
+const NFT_MODULE_ADDRESS = "_"; // NFT contract address (optional, set to "_" to skip NFT minting)
 const NFT_MODULE_NAME = "CedraCollectionV2";
 
 // Cedra network configuration
