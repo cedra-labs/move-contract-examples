@@ -1,0 +1,17 @@
+[package]
+name = "FaLock"
+version = "1.0.0"
+authors = []
+
+[addresses]
+lock_deployer = "_"
+
+[dev-addresses]
+lock_deployer = "0xc1"
+
+[dependencies.CedraFramework]
+git = "https://github.com/cedra-labs/cedra-framework.git"
+rev = "main"
+subdir = "cedra-framework"
+
+[dev-dependencies]

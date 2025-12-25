@@ -1,0 +1,14 @@
+[package]
+name = "SimpleDex"
+version = "0.0.1"
+
+[addresses]
+simple_dex = "_"
+
+[dev-addresses]
+simple_dex = "0x1337"
+
+[dependencies.CedraFramework]
+git = "https://github.com/cedra-labs/cedra-framework.git"
+rev = "main"
+subdir = "cedra-framework"
