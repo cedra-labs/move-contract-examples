@@ -1,0 +1,17 @@
+[package]
+name = "Faucets"
+version = "1.0.0"
+authors = []
+
+[addresses]
+faucets = "_"
+
+[dev-addresses]
+faucets = "0x1337"
+
+[dependencies.CedraFramework]
+git = "https://github.com/cedra-labs/cedra-framework.git"
+rev = "main"
+subdir = "cedra-framework"
+
+[dev-dependencies]

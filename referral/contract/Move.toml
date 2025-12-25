@@ -1,0 +1,14 @@
+[package]
+name = "referral"
+version = "1.0.0"
+authors = []
+
+[addresses]
+referral_example = "_"
+
+[dev-addresses]
+referral_example = "0x45d869282e5605c700c8f153c80770b5dc9af2beadc3a35aa1c03aabff25f41c"
+[dependencies]
+CedraFramework = { git = "https://github.com/cedra-labs/cedra-framework.git", subdir = "cedra-framework", rev = "main" }
+
+[dev-dependencies]

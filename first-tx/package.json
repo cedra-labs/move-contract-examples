@@ -1,0 +1,21 @@
+{
+    "name": "cedra-first-transaction",
+    "version": "1.0.0",
+    "description": "Your first transaction on CEDRA blockchain",
+    "main": "src/first-transaction.ts",
+    "scripts": {
+      "start": "ts-node src/first-transaction.ts",
+      "build": "tsc",
+      "clean": "rm -rf dist"
+    },
+    "keywords": ["cedra", "blockchain", "transaction", "tutorial"],
+    "license": "Apache-2.0",
+    "dependencies": {
+      "@cedra-labs/ts-sdk": "^2.2.1"
+    },
+    "devDependencies": {
+      "@types/node": "^20.0.0",
+      "ts-node": "^10.9.1",
+      "typescript": "^5.0.0"
+    }
+  }

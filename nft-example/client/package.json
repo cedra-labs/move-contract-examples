@@ -1,0 +1,30 @@
+{
+	"name": "cedra-nft-v2-client",
+	"version": "2.0.0",
+	"description": "TypeScript client demonstrating Cedra development concepts with NFT collections",
+	"main": "index.js",
+	"type": "module",
+	"scripts": {
+		"start": "tsx src/index.ts",
+		"build": "tsc"
+	},
+	"dependencies": {
+		"@cedra-labs/ts-sdk": "^2.2.1"
+	},
+	"devDependencies": {
+		"@types/node": "^22.15.18",
+		"ts-node": "^10.9.2",
+		"tsconfig-paths": "^4.2.0",
+		"tsx": "^4.19.4",
+		"typescript": "^5.8.3"
+	},
+	"keywords": [
+		"cedra",
+		"nft",
+		"digital-assets",
+		"move",
+		"blockchain",
+		"development"
+	],
+	"license": "MIT"
+}

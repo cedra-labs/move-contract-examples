@@ -1,0 +1,15 @@
+[package]
+name = "cedra_fungible_asset"
+version = "1.0.0"
+authors = []
+
+[addresses]
+CedraFungible = "_"
+
+[dev-addresses]
+CedraFungible = "0xcafe"
+
+[dependencies]
+CedraFramework = { git = "https://github.com/cedra-labs/cedra-framework.git", subdir = "cedra-framework", rev = "main" }
+
+[dev-dependencies]
