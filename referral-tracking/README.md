@@ -116,7 +116,7 @@ Make sure these are in your `package.json`:
 ### 1. Clone the Repository
 
 ```bash
-cd "Basic Referral Tracking Contract"
+cd "referral-tracking"
 ```
 
 ### 2. Smart Contract Setup
