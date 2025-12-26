@@ -1,7 +1,7 @@
 {
-  "name": "coat-escrow-client",
+  "name": "race-client",
   "version": "1.0.0",
-  "description": "Client for interacting with coat escrow contract",
+  "description": "Client for interacting with race contract",
   "main": "index.js",
   "type": "module",
   "scripts": {
