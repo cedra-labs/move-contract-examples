@@ -1,1 +1,0 @@
-{"version":3,"file":"openTelegramPrompt.d.ts","sourceRoot":"","sources":["../../src/telegram/openTelegramPrompt.ts"],"names":[],"mappings":"AAGA,OAAO,EAGL,uBAAuB,EAExB,MAAM,2BAA2B,CAAC;AAOnC,wBAAsB,kBAAkB,CAAC,IAAI,EAAE;IAC7C,OAAO,EAAE,MAAM,CAAC;IAChB,OAAO,EAAE,uBAAuB,CAAC;IACjC,WAAW,CAAC,EAAE,MAAM,CAAC;CACtB,yEAqCA"}

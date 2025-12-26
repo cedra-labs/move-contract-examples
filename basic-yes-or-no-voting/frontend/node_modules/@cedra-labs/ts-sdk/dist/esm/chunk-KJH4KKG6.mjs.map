@@ -1,1 +1,0 @@
-{"version":3,"sources":["../../src/types/abstraction.ts"],"sourcesContent":["/**\n * The variant for the AbstractionAuthData enum.\n */\nexport enum AbstractionAuthDataVariant {\n  V1 = 0,\n  DerivableV1 = 1,\n}\n"],"mappings":"AAGO,IAAKA,OACVA,IAAA,GAAK,GAAL,KACAA,IAAA,YAAc,GAAd,cAFUA,OAAA","names":["AbstractionAuthDataVariant"]}
