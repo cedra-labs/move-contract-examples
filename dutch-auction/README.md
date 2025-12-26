@@ -107,7 +107,7 @@ frontend/
 ### 1. Clone the Repository
 
 ```bash
-cd "Dutch Auction Contract"
+cd "dutch-auction"
 ```
 
 ### 2. Smart Contract Setup
