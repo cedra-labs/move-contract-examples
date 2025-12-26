@@ -1,0 +1,17 @@
+[package]
+name = "referral"
+version = "1.0.0"
+authors = []
+
+[addresses]
+module_addr = "_"
+
+[dev-addresses]
+module_addr = "0x123"
+
+[dependencies.CedraFramework]
+git = "https://github.com/cedra-labs/cedra-framework.git"
+rev = "mainnet"
+subdir = "cedra-framework"
+
+[dev-dependencies]
