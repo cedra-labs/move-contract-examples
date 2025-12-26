@@ -1,0 +1,1 @@
+{"version":3,"file":"AptosSignInOutput.d.ts","sourceRoot":"","sources":["../../src/shared/AptosSignInOutput.ts"],"names":[],"mappings":"AAGA,OAAO,EAAE,YAAY,EAAE,UAAU,EAAE,MAAM,oBAAoB,CAAC;AAC9D,OAAO,EAAe,iBAAiB,EAAE,MAAM,6BAA6B,CAAC;AAI7E,wBAAgB,0BAA0B,CAAC,UAAU,EAAE,UAAU,EAAE,KAAK,EAAE,iBAAiB,QAO1F;AAED,wBAAgB,4BAA4B,CAAC,YAAY,EAAE,YAAY,GAAG,iBAAiB,CAS1F"}

@@ -1,0 +1,1 @@
+{"version":3,"file":"execSyncShell.js","sourceRoot":"","sources":["../../bin/utils/execSyncShell.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,QAAQ,EAAE,MAAM,eAAe,CAAC;AAKzC,MAAM,CAAC,MAAM,aAAa,GAAG,CAAC,OAAO,EAAE,OAAO,EAAE,EAAE;IAChD,OAAO,QAAQ,CAAC,OAAO,EAAE,EAAE,KAAK,EAAE,IAAI,EAAE,GAAG,OAAO,EAAE,CAAC,CAAC;AACxD,CAAC,CAAC"}

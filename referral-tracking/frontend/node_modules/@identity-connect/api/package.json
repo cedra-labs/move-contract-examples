@@ -1,0 +1,34 @@
+{
+  "name": "@identity-connect/api",
+  "version": "0.7.0",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "require": "./dist/index.js",
+    "import": "./dist/index.mjs",
+    "types": "./dist/index.d.ts"
+  },
+  "devDependencies": {
+    "axios-mock-adapter": "1.21.4",
+    "ts-node": "10.9.1",
+    "tsup": "^7.1.0",
+    "typescript": "5.0.4",
+    "@identity-connect/tsconfig": "0.0.0",
+    "@identity-connect/eslint-config": "0.0.0"
+  },
+  "files": [
+    "dist",
+    "src",
+    "!src/**.test.ts",
+    "!src/**/__tests__"
+  ],
+  "scripts": {
+    "build:bundle": "tsup src/index.ts --tsconfig tsconfig.build.json --format cjs,esm --sourcemap",
+    "build:declarations": "tsc --project tsconfig.build.json --emitDeclarationOnly --declaration --declarationMap",
+    "build": "pnpm build:bundle && pnpm build:declarations",
+    "lint": "prettier --check src",
+    "lint:fix": "prettier --write src && eslint --cache ./src --fix"
+  }
+}
