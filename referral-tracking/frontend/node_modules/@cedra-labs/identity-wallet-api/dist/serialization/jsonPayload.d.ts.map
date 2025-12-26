@@ -1,0 +1,1 @@
+{"version":3,"file":"jsonPayload.d.ts","sourceRoot":"","sources":["../../src/serialization/jsonPayload.ts"],"names":[],"mappings":"AAKA,OAAO,KAAK,EAAuC,sBAAsB,EAAE,MAAM,UAAU,CAAC;AAqD5F,wBAAgB,+BAA+B,CAAC,OAAO,EAAE,sBAAsB,GAAG,sBAAsB,CAYvG;AAED,wBAAgB,iCAAiC,CAAC,OAAO,EAAE,sBAAsB,GAAG,sBAAsB,CAYzG"}

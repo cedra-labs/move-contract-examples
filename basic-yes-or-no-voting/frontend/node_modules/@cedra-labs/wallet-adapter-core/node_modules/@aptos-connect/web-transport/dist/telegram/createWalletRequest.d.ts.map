@@ -1,0 +1,1 @@
+{"version":3,"file":"createWalletRequest.d.ts","sourceRoot":"","sources":["../../src/telegram/createWalletRequest.ts"],"names":[],"mappings":"AAGA,OAAO,EAIL,wBAAwB,EACzB,MAAM,2BAA2B,CAAC;AAEnC,wBAAsB,mBAAmB,CAAC,OAAO,EAAE,MAAM,EAAE,OAAO,EAAE,wBAAwB,iBAiB3F"}

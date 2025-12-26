@@ -1,0 +1,22 @@
+// Copyright © Aptos Foundation
+// SPDX-License-Identifier: Apache-2.0
+
+import { AccountInfo } from '../AccountInfo'
+
+/** Version of the feature. */
+export type AptosGetAccountVersion = '1.0.0'
+/** Name of the feature. */
+export const AptosGetAccountNamespace = 'aptos:account'
+
+export type AptosGetAccountFeature = {
+  /** Namespace for the feature. */
+  [AptosGetAccountNamespace]: {
+    /** Version of the feature API. */
+    version: AptosGetAccountVersion
+    account: AptosGetAccountMethod
+  }
+}
+
+export type AptosGetAccountMethod = () => Promise<AptoGetsAccountOutput>
+
+export type AptoGetsAccountOutput = AccountInfo

@@ -1,0 +1,1 @@
+{"version":3,"file":"getWalletResponse.d.ts","sourceRoot":"","sources":["../../src/telegram/getWalletResponse.ts"],"names":[],"mappings":"AAGA,OAAO,EAAmC,wBAAwB,EAAE,MAAM,2BAA2B,CAAC;AACtG,OAAO,EAAE,gBAAgB,EAAE,MAAM,oBAAoB,CAAC;AAGtD,wBAAsB,iBAAiB,CACrC,OAAO,EAAE,MAAM,EACf,iBAAiB,EAAE,gBAAgB,EACnC,SAAS,EAAE,MAAM,GAChB,OAAO,CAAC,wBAAwB,CAAC,CAanC"}

@@ -1,0 +1,44 @@
+{
+  "name": "@aptos-connect/web-transport",
+  "version": "0.2.0",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "require": "./dist/index.js",
+    "import": "./dist/index.mjs",
+    "types": "./dist/index.d.ts"
+  },
+  "dependencies": {
+    "uuid": "^9.0.1",
+    "@aptos-connect/wallet-api": "^0.2.0"
+  },
+  "peerDependencies": {
+    "@aptos-labs/wallet-standard": "^0.3.0",
+    "@aptos-labs/ts-sdk": "^1.33.1",
+    "@telegram-apps/bridge": "^1.0.0",
+    "aptos": "^1.20.0"
+  },
+  "devDependencies": {
+    "@types/uuid": "^9.0.8",
+    "ts-node": "10.9.1",
+    "tsup": "^7.1.0",
+    "typescript": "5.4.3",
+    "@identity-connect/eslint-config": "0.0.0",
+    "@identity-connect/tsconfig": "0.0.0"
+  },
+  "files": [
+    "dist",
+    "src",
+    "!src/**.test.ts",
+    "!src/**/__tests__"
+  ],
+  "scripts": {
+    "build:bundle": "tsup src/index.ts --tsconfig tsconfig.build.json --format cjs,esm --sourcemap",
+    "build:declarations": "tsc --project tsconfig.build.json --emitDeclarationOnly --declaration --declarationMap",
+    "build": "pnpm build:bundle && pnpm build:declarations",
+    "lint": "prettier --check src",
+    "lint:fix": "prettier --write src && eslint --cache ./src --fix"
+  }
+}

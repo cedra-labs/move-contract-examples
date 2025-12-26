@@ -1,0 +1,21 @@
+import type { SignAndSubmitTransactionRequestArgs, SignAndSubmitTransactionRequestV1Args, SignAndSubmitTransactionWithFeePayerRawTxnRequestArgs, SignAndSubmitTransactionWithPayloadRequestArgs, SignAndSubmitTransactionWithRawTxnRequestArgs } from '../types';
+import { JsonTransactionPayload, TransactionOptions } from '../types';
+import { type SerializedFeePayerRawTransaction, type SerializedSimpleRawTransaction } from './rawTxn';
+export interface SerializedSignAndSubmitTransactionWithPayloadRequestArgs {
+    options?: TransactionOptions;
+    payload: JsonTransactionPayload | string;
+}
+export interface SerializedSignAndSubmitTransactionWithRawTxnRequestArgs {
+    rawTxn: SerializedSimpleRawTransaction;
+}
+export interface SerializedSignAndSubmitTransactionWithFeePayerRawTxnRequestArgs {
+    feePayerAuthenticator: string;
+    rawTxn: SerializedFeePayerRawTransaction;
+}
+export type SerializedSignAndSubmitTransactionRequestArgs = SerializedSignAndSubmitTransactionWithPayloadRequestArgs | SerializedSignAndSubmitTransactionWithRawTxnRequestArgs | SerializedSignAndSubmitTransactionWithFeePayerRawTxnRequestArgs;
+export declare function serializeSignAndSubmitTransactionRequestArgs(args: SignAndSubmitTransactionRequestArgs | SignAndSubmitTransactionRequestV1Args): SerializedSignAndSubmitTransactionRequestArgs;
+export declare function deserializeSignAndSubmitTransactionRequestArgs(args: SerializedSignAndSubmitTransactionWithPayloadRequestArgs): SignAndSubmitTransactionWithPayloadRequestArgs;
+export declare function deserializeSignAndSubmitTransactionRequestArgs(args: SerializedSignAndSubmitTransactionWithRawTxnRequestArgs): SignAndSubmitTransactionWithRawTxnRequestArgs;
+export declare function deserializeSignAndSubmitTransactionRequestArgs(args: SerializedSignAndSubmitTransactionWithFeePayerRawTxnRequestArgs): SignAndSubmitTransactionWithFeePayerRawTxnRequestArgs;
+export declare function deserializeSignAndSubmitTransactionRequestArgs(args: SerializedSignAndSubmitTransactionRequestArgs): SignAndSubmitTransactionRequestArgs;
+//# sourceMappingURL=signAndSubmitTransactionRequestArgs.d.ts.map

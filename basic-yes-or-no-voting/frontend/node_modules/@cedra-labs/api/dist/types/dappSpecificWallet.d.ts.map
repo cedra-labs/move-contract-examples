@@ -1,0 +1,1 @@
+{"version":3,"file":"dappSpecificWallet.d.ts","sourceRoot":"","sources":["../../src/types/dappSpecificWallet.ts"],"names":[],"mappings":"AAGA,MAAM,WAAW,kBAAkB;IACjC,UAAU,EAAE,MAAM,CAAC;IACnB,SAAS,EAAE,IAAI,CAAC;IAChB,EAAE,EAAE,MAAM,CAAC;IACX,YAAY,EAAE,MAAM,CAAC;IACrB,gBAAgB,EAAE,MAAM,CAAC;IACzB,4BAA4B,EAAE,MAAM,CAAC;IACrC,SAAS,EAAE,IAAI,CAAC;IAChB,MAAM,EAAE,MAAM,CAAC;CAChB"}
