@@ -88,7 +88,7 @@ frontend/
 ### 1. Clone the Repository
 
 ```bash
-cd "Basic Voting"
+cd "basic-yes-or-no-voting"
 ```
 
 ### 2. Smart Contract Setup
