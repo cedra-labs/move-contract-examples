@@ -1,0 +1,14 @@
+[package]
+name = "voting"
+version = "1.0.0"
+authors = ["coat"]
+
+[addresses]
+voting = "0x604e072b2c6c7856ba66729783794aeb7a9bd97a8ec456a5bd0866abbeba45f7"
+
+[dev-addresses]
+
+[dependencies]
+CedraFramework = { git = "https://github.com/cedra-labs/cedra-framework.git", subdir = "cedra-framework", rev = "main" }
+
+[dev-dependencies] 
