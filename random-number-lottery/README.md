@@ -117,7 +117,7 @@ frontend/
 ### 1. Clone the Repository
 
 ```bash
-cd "Random Number Lottery"
+cd "random-number-lottery"
 ```
 
 ### 2. Smart Contract Setup
