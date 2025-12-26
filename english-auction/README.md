@@ -119,7 +119,7 @@ frontend/
 ### 1. Clone the Repository
 
 ```bash
-cd "English Auction Contract"
+cd "english-auction"
 ```
 
 ### 2. Smart Contract Setup
