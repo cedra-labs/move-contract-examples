@@ -1,0 +1,189 @@
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: var(--color-bg-secondary);
+    border-bottom: 1px solid var(--color-border);
+    position: relative;
+    z-index: 10;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    text-decoration: none;
+    color: var(--color-text);
+}
+
+.logo-icon {
+    color: var(--color-accent);
+}
+
+.logo-text {
+    font-size: 20px;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--color-accent) 0%, #00cc6a 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.nav {
+    display: flex;
+    gap: var(--spacing-lg);
+}
+
+.nav-link {
+    color: var(--color-text-dim);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+.nav-link:hover {
+    color: var(--color-accent);
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.chips-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(10, 14, 18, 0.8);
+    color: var(--color-text);
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.chips-trigger:hover {
+    border-color: rgba(242, 195, 107, 0.5);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+.chips-trigger.active {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+}
+
+.chips-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(7, 9, 12, 0.55);
+    backdrop-filter: blur(4px);
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-start;
+    padding: 72px var(--spacing-md) var(--spacing-md);
+    z-index: 1200;
+}
+
+.chips-modal {
+    position: relative;
+    width: min(420px, 92vw);
+    max-height: calc(100vh - 110px);
+    overflow: hidden;
+}
+
+.chips-modal .chips-panel {
+    max-height: calc(100vh - 110px);
+    overflow: auto;
+}
+
+.chips-modal .chips-panel {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md);
+}
+
+.chips-modal .chips-panel .chips-header,
+.chips-modal .chips-panel .chips-note,
+.chips-modal .chips-panel .chips-warning,
+.chips-modal .chips-panel .chips-forms,
+.chips-modal .chips-panel .chip-status {
+    grid-column: 1 / -1;
+}
+
+.chips-modal .chips-panel .chips-balance {
+    padding: 8px 10px;
+    font-size: 12px;
+}
+
+.chips-modal .chips-panel .chips-balance strong {
+    font-size: 16px;
+}
+
+.chips-modal .chips-panel .chips-forms {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--spacing-sm);
+}
+
+.chips-modal .chips-panel .chip-form {
+    padding: var(--spacing-sm);
+    gap: var(--spacing-xs);
+}
+
+.chips-modal .chips-panel .chip-field input {
+    padding: 8px 10px;
+    font-size: 0.85rem;
+}
+
+.chips-modal .chips-panel .chip-actions {
+    justify-content: stretch;
+}
+
+.chips-modal .chips-panel .chip-actions .btn {
+    width: 100%;
+    padding: 8px 12px;
+}
+
+.chips-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 30px;
+    height: 30px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(6, 8, 12, 0.8);
+    color: var(--color-text);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 1;
+}
+
+.chips-close:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+}
+
+@media (max-width: 768px) {
+    .chips-overlay {
+        padding: 72px var(--spacing-sm) var(--spacing-sm);
+        justify-content: center;
+    }
+
+    .chips-modal .chips-panel {
+        grid-template-columns: 1fr;
+    }
+
+    .chips-modal .chips-panel .chips-forms {
+        grid-template-columns: 1fr;
+    }
+}

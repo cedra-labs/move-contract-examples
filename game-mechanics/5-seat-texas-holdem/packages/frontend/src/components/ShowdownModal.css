@@ -1,0 +1,403 @@
+/* Showdown Modal Overlay */
+.showdown-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-lg);
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* Modal Container */
+.showdown-modal {
+    background: linear-gradient(165deg, var(--color-surface) 0%, #12161c 100%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+    max-width: 700px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: modalSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(24px) scale(0.96);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Header */
+.showdown-header {
+    padding: var(--spacing-xl) var(--spacing-xl) var(--spacing-md);
+    text-align: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.showdown-header h2 {
+    margin: 0;
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--color-accent);
+    letter-spacing: 1px;
+}
+
+.showdown-phase,
+.showdown-hand-num {
+    display: block;
+    margin-top: var(--spacing-xs);
+    font-size: 0.85rem;
+    color: var(--color-text-dim);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.showdown-hand-num {
+    font-family: var(--font-mono);
+    color: var(--color-text);
+}
+
+/* Content */
+.showdown-content {
+    padding: var(--spacing-xl);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xl);
+}
+
+/* Pot Display */
+.showdown-pot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-md) var(--spacing-xl);
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.showdown-pot .pot-label {
+    font-size: 0.75rem;
+    color: var(--color-text-dim);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.showdown-pot .pot-value {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--color-accent);
+    font-family: var(--font-mono);
+}
+
+/* Winners Section */
+.showdown-winners {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.showdown-winners h3 {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--color-text-dim);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.winner-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.winner-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: linear-gradient(135deg, rgba(247, 181, 0, 0.15) 0%, rgba(247, 181, 0, 0.05) 100%);
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(247, 181, 0, 0.3);
+}
+
+.winner-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.winner-seat {
+    font-size: 0.75rem;
+    color: var(--color-text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.winner-addr {
+    font-size: 0.9rem;
+    font-family: var(--font-mono);
+    color: var(--color-text);
+}
+
+.winner-hand-type {
+    font-size: 0.8rem;
+    color: var(--color-accent);
+    font-weight: 600;
+}
+
+.winner-amount {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--color-success);
+    font-family: var(--font-mono);
+}
+
+/* Board Section */
+.showdown-board,
+.showdown-hands {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.showdown-board h3,
+.showdown-hands h3 {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--color-text-dim);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+/* Card Display */
+.showdown-cards {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+}
+
+.showdown-cards.community {
+    justify-content: center;
+}
+
+.showdown-card {
+    width: 56px;
+    height: 78px;
+    background: linear-gradient(165deg, #ffffff 0%, #f8f6f3 50%, #f0ede8 100%);
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    animation: cardReveal 0.4s ease both;
+}
+
+.showdown-card.red {
+    color: #c41e3a;
+}
+
+.showdown-card.black {
+    color: #1a1a2e;
+}
+
+.showdown-card-rank {
+    font-size: 1.25rem;
+    line-height: 1;
+}
+
+.showdown-card-suit {
+    font-size: 1.5rem;
+    line-height: 1;
+}
+
+.showdown-card-slot {
+    width: 56px;
+    height: 78px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 6px;
+    border: 2px dashed rgba(255, 255, 255, 0.1);
+}
+
+@keyframes cardReveal {
+    from {
+        opacity: 0;
+        transform: rotateY(-90deg);
+    }
+
+    to {
+        opacity: 1;
+        transform: rotateY(0);
+    }
+}
+
+.showdown-cards .showdown-card:nth-child(1) {
+    animation-delay: 0.05s;
+}
+
+.showdown-cards .showdown-card:nth-child(2) {
+    animation-delay: 0.1s;
+}
+
+.showdown-cards .showdown-card:nth-child(3) {
+    animation-delay: 0.15s;
+}
+
+.showdown-cards .showdown-card:nth-child(4) {
+    animation-delay: 0.2s;
+}
+
+.showdown-cards .showdown-card:nth-child(5) {
+    animation-delay: 0.25s;
+}
+
+/* Player Hands */
+.showdown-players {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.showdown-player {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.player-label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.player-label .seat-num {
+    font-size: 0.75rem;
+    color: var(--color-text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.player-label .player-addr {
+    font-size: 0.9rem;
+    font-family: var(--font-mono);
+    color: var(--color-text);
+}
+
+.player-label .hand-type {
+    font-size: 0.8rem;
+    color: var(--color-accent);
+    font-weight: 600;
+    margin-top: 2px;
+}
+
+/* Winner highlight */
+.showdown-player.winner {
+    background: linear-gradient(135deg, rgba(247, 181, 0, 0.12) 0%, rgba(247, 181, 0, 0.04) 100%);
+    border: 1px solid rgba(247, 181, 0, 0.25);
+}
+
+.player-win-badge {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--color-success);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background: rgba(16, 185, 129, 0.15);
+    border-radius: var(--radius-sm);
+    white-space: nowrap;
+}
+
+.showdown-cards.hole .showdown-card {
+    width: 48px;
+    height: 66px;
+}
+
+.showdown-cards.hole .showdown-card-rank {
+    font-size: 1rem;
+}
+
+.showdown-cards.hole .showdown-card-suit {
+    font-size: 1.2rem;
+}
+
+.no-cards {
+    color: var(--color-text-dim);
+    font-style: italic;
+    font-size: 0.9rem;
+}
+
+/* Footer */
+.showdown-footer {
+    padding: var(--spacing-lg) var(--spacing-xl);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    justify-content: center;
+}
+
+.showdown-dismiss {
+    min-width: 180px;
+    font-size: 1rem;
+    padding: var(--spacing-md) var(--spacing-xl);
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .showdown-modal {
+        margin: var(--spacing-md);
+    }
+
+    .showdown-content {
+        padding: var(--spacing-md);
+    }
+
+    .showdown-card {
+        width: 44px;
+        height: 62px;
+    }
+
+    .showdown-card-rank {
+        font-size: 1rem;
+    }
+
+    .showdown-card-suit {
+        font-size: 1.2rem;
+    }
+
+    .showdown-pot .pot-value {
+        font-size: 1.5rem;
+    }
+
+    .showdown-player {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
