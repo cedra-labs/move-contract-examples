@@ -1,13 +1,13 @@
 [package]
-name = "cedra_nft_v2"
+name = "expand_nft"
 version = "2.0.0"
 authors = []
 
 [addresses]
-CedraNFTV2 = "_"
+ExpandNFT = "_"
 
 [dev-addresses]
-CedraNFTV2 = "0xc2"
+ExpandNFT = "_" 
 
 [dependencies]
 CedraFramework = { git = "https://github.com/cedra-labs/cedra-framework.git", subdir = "cedra-framework", rev = "main" }
