@@ -1,0 +1,24 @@
+{
+  "name": "5-seat-texas-holdem",
+  "version": "1.0.0",
+  "private": true,
+  "description": "5-Seat Texas Hold'em - Move smart contracts with React frontend",
+  "scripts": {
+    "dev": "npm run dev --workspace=packages/frontend",
+    "build": "npm run build --workspace=packages/frontend",
+    "preview": "npm run preview --workspace=packages/frontend",
+    "contracts:test": "cd packages/contracts && cedra move test",
+    "contracts:compile": "cd packages/contracts && cedra move compile"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "keywords": [
+    "texas-holdem",
+    "poker",
+    "move",
+    "cedra",
+    "blockchain"
+  ],
+  "license": "MIT"
+}

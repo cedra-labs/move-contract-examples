@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Redirecting...</title>
+    <script>
+      (function () {
+        var repoBase = "/5-seat-texas-hold-em";
+        var location = window.location;
+        var segmentCount =
+          location.pathname === repoBase ||
+          location.pathname.startsWith(repoBase + "/")
+            ? 1
+            : 0;
+        var pathname = location.pathname.split("/");
+        var base = pathname.slice(0, 1 + segmentCount).join("/");
+        var rest = pathname.slice(1 + segmentCount).join("/");
+        var search = location.search
+          ? "&" + location.search.slice(1).replace(/&/g, "~and~")
+          : "";
+        var redirect =
+          location.protocol +
+          "//" +
+          location.host +
+          base +
+          "/?/" +
+          rest +
+          search +
+          location.hash;
+        location.replace(redirect);
+      })();
+    </script>
+  </head>
+  <body></body>
+</html>

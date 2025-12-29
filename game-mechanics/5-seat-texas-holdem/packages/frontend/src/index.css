@@ -1,0 +1,405 @@
+/* ============================================
+   Premium Design System - Texas Hold'em
+   ============================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+/* CSS Custom Properties */
+:root {
+  /* Colors - Dark Theme */
+  --bg-primary: #07090c;
+  --bg-secondary: #0e1217;
+  --bg-card: rgba(16, 21, 27, 0.92);
+  --bg-elevated: rgba(22, 28, 36, 0.92);
+
+  /* Accent Colors */
+  --accent-primary: #f2c36b;
+  --accent-secondary: #4adf9a;
+  --accent-success: #4adf9a;
+  --accent-warning: #f0b452;
+  --accent-danger: #ff6b6b;
+  --accent-info: #5ec1ff;
+
+  /* Text Colors */
+  --text-primary: #f7f2e8;
+  --text-secondary: rgba(247, 242, 232, 0.62);
+  --text-muted: rgba(247, 242, 232, 0.45);
+
+  /* Poker Theme */
+  --felt-green: #0b4a2a;
+  --felt-border: #8a5a2a;
+  --gold: #f2c36b;
+  --chip-red: #c03737;
+  --chip-blue: #2f6cc8;
+  --chip-black: #151921;
+
+  /* Glass Morphism */
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-blur: 12px;
+
+  /* Shadows */
+  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 12px 28px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 20px 48px rgba(0, 0, 0, 0.45);
+  --shadow-glow: 0 0 24px rgba(242, 195, 107, 0.35);
+
+  /* Spacing */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+
+  /* Border Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+  --transition-slow: 0.4s ease;
+
+  /* Fonts */
+  --font-sans: "Space Grotesk", "Segoe UI", sans-serif;
+  --font-display: "Cinzel", "Times New Roman", serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+}
+
+/* Reset and Base Styles */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Typography */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  letter-spacing: 0.02em;
+}
+
+h1 {
+  font-size: 2.2rem;
+}
+
+h2 {
+  font-size: 1.6rem;
+}
+
+h3 {
+  font-size: 1.25rem;
+}
+
+h4 {
+  font-size: 1rem;
+}
+
+p {
+  color: var(--text-secondary);
+}
+
+/* Links */
+a {
+  color: var(--accent-primary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--accent-secondary);
+}
+
+/* Buttons Base */
+button {
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  transition: all var(--transition-normal);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Primary Button */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-normal);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent-primary) 0%, #d39545 100%);
+  color: #2b1b0a;
+  border: none;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-glow);
+}
+
+.btn-secondary {
+  background: var(--glass-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--glass-border);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #c83b3b 0%, #ff6b6b 100%);
+  color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+}
+
+/* Input Fields */
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: 0.95rem;
+  padding: 0.75rem 1rem;
+  background: rgba(6, 8, 12, 0.7);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  transition: all var(--transition-fast);
+  width: 100%;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(242, 195, 107, 0.2);
+}
+
+input::placeholder {
+  color: var(--text-muted);
+}
+
+/* Card Component */
+.card {
+  background: var(--bg-card);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-md);
+}
+
+/* Alert Messages */
+.alert {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1rem;
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.alert.success {
+  background: rgba(74, 223, 154, 0.15);
+  border: 1px solid rgba(74, 223, 154, 0.3);
+  color: #9beac6;
+}
+
+.alert.error {
+  background: rgba(255, 107, 107, 0.15);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  color: #ffb3b3;
+}
+
+.alert.warning {
+  background: rgba(240, 180, 82, 0.15);
+  border: 1px solid rgba(240, 180, 82, 0.3);
+  color: #f6d18b;
+}
+
+.alert.info {
+  background: rgba(94, 193, 255, 0.15);
+  border: 1px solid rgba(94, 193, 255, 0.3);
+  color: #b2ddff;
+}
+
+/* Spinner Animation */
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--glass-border);
+  border-top-color: var(--accent-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Utility Classes */
+.text-center {
+  text-align: center;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+.text-success {
+  color: var(--accent-success);
+}
+
+.text-warning {
+  color: var(--accent-warning);
+}
+
+.text-danger {
+  color: var(--accent-danger);
+}
+
+.text-gold {
+  color: var(--gold);
+}
+
+.mt-1 {
+  margin-top: var(--space-sm);
+}
+
+.mt-2 {
+  margin-top: var(--space-md);
+}
+
+.mt-3 {
+  margin-top: var(--space-lg);
+}
+
+.mb-1 {
+  margin-bottom: var(--space-sm);
+}
+
+.mb-2 {
+  margin-bottom: var(--space-md);
+}
+
+.mb-3 {
+  margin-bottom: var(--space-lg);
+}
+
+.flex {
+  display: flex;
+}
+
+.flex-col {
+  flex-direction: column;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.justify-center {
+  justify-content: center;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.gap-1 {
+  gap: var(--space-sm);
+}
+
+.gap-2 {
+  gap: var(--space-md);
+}
+
+.gap-3 {
+  gap: var(--space-lg);
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Selection */
+::selection {
+  background: var(--accent-primary);
+  color: #2b1b0a;
+}

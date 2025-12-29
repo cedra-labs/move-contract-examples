@@ -1,0 +1,141 @@
+:root {
+  /* Brand colors */
+  --color-bg: #07090c;
+  --color-bg-secondary: #0e1217;
+  --color-bg-card: rgba(16, 21, 27, 0.92);
+  --color-accent: #f2c36b;
+  --color-accent-dim: rgba(242, 195, 107, 0.2);
+  --color-action: #4adf9a;
+  --color-action-dim: rgba(74, 223, 154, 0.18);
+  --color-text: #f7f2e8;
+  --color-text-dim: rgba(247, 242, 232, 0.62);
+  --color-border: rgba(247, 242, 232, 0.1);
+  --color-danger: #ff6b6b;
+  --color-warning: #f0b452;
+
+  /* Poker table colors */
+  --color-felt: #0b4a2a;
+  --color-felt-border: #8a5a2a;
+  --color-card-back: #151921;
+
+  /* Shadows */
+  --shadow-soft: 0 16px 32px rgba(0, 0, 0, 0.35);
+  --shadow-strong: 0 30px 60px rgba(0, 0, 0, 0.45);
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+
+  /* Border radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+
+  /* Typography */
+  --font-sans: "Space Grotesk", "Segoe UI", sans-serif;
+  --font-display: "Cinzel", "Times New Roman", serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+  color: var(--color-text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-content {
+  flex: 1;
+  padding: var(--spacing-lg);
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.main-content.table-mode {
+  max-width: none;
+  padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-xs);
+}
+
+/* Utility classes */
+.text-accent {
+  color: var(--color-accent);
+}
+
+.text-dim {
+  color: var(--color-text-dim);
+}
+
+.text-mono {
+  font-family: var(--font-mono);
+}
+
+/* Animations */
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes glow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(74, 223, 154, 0.25);
+  }
+
+  50% {
+    box-shadow: 0 0 40px rgba(74, 223, 154, 0.45);
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.animate-glow {
+  animation: glow 2s ease-in-out infinite;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
