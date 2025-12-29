@@ -7,8 +7,8 @@ A comprehensive on-chain public goods funding protocol for Cedra blockchain feat
 CedraGrants brings Gitcoin-style quadratic funding to the Cedra ecosystem, leveraging Cedra-unique features:
 
 - **Native VRF Randomness** - Uses `cedra_framework::randomness` for fair verification lottery
-- **Custom Gas Token Ready** - Compatible with Cedra's custom gas token feature
 - **Built-in Indexer Integration** - 13 events for real-time data streaming
+- **TypeScript SDK Ready** - Frontend integration with `@cedra-labs/ts-sdk`
 
 ## Features
 
