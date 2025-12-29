@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Cedra Assistant</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <link rel="stylesheet" href="style.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"
+  >
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+</head>
+
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <button class="new-chat" id="new-chat-btn">＋ New Chat</button>
+      </div>
+
+      <div id="conversation-list"></div>
+
+      <div class="sidebar-footer">
+        <div class="user-row">
+          <img id="user-avatar" class="avatar" alt="User" style="display:none;" />
+          <div class="user-meta">
+            <div id="user-status" class="user-name">Guest</div>
+
+          </div>
+        </div>
+
+        <div class="auth-actions">
+          <button id="login-btn" class="auth-btn">Login</button>
+          <button id="logout-btn" class="auth-btn" style="display:none;">Logout</button>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="top-header">
+        <div class="header-left">
+          <span class="brand">Cedra Assistant</span>
+          <span class="subtitle">AI-powered blockchain development assistant</span>
+        </div>
+
+       <div class="header-right">
+  <a href="https://cedra.network" target="_blank" class="header-icon" title="Cedra Website">
+    🌐
+  </a>
+
+  <a
+    href="https://github.com/cedra-labs"
+    target="_blank"
+    title="Cedra GitHub"
+    class="header-icon"
+  >
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path d="M12 0.5C5.73 0.5.75 5.47.75 11.75c0 4.99 3.21 9.22 7.66 10.72.56.1.77-.24.77-.54v-1.88c-3.12.68-3.78-1.34-3.78-1.34-.5-1.27-1.22-1.6-1.22-1.6-.99-.68.08-.66.08-.66 1.1.08 1.68 1.14 1.68 1.14.97 1.67 2.55 1.19 3.17.91.1-.7.38-1.19.69-1.46-2.49-.28-5.11-1.25-5.11-5.57 0-1.23.44-2.24 1.16-3.03-.12-.28-.5-1.43.11-2.99 0 0 .95-.31 3.11 1.16.9-.25 1.86-.38 2.82-.38.96 0 1.92.13 2.82.38 2.16-1.47 3.11-1.16 3.11-1.16.61 1.56.23 2.71.11 2.99.72.79 1.16 1.8 1.16 3.03 0 4.33-2.62 5.28-5.12 5.56.39.34.73 1 .73 2.02v3c0 .3.21.65.78.54 4.45-1.5 7.66-5.73 7.66-10.72C23.25 5.47 18.27.5 12 .5z"/>
+    </svg>
+  </a>
+</div>
+ </header>
+
+      <section class="chat-container">
+        <div class="messages" id="messages"></div>
+
+        <div class="input-area">
+          <div class="input-wrapper">
+            <input id="input" placeholder="Welcome" />
+            <button id="send-btn">↑</button>
+          </div>
+        </div>
+
+        <div class="footer-note">
+          Cedra Assistant can make mistakes. Consider checking important information.
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/auth.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>
