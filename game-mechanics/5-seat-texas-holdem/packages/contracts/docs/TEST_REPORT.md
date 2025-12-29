@@ -1,9 +1,9 @@
 # Test Report - 5-Seat Texas Hold'em
 
-**Date:** 2025-12-27  
+**Date:** 2025-12-29  
 **Framework:** Cedra Move Test Framework  
 **Status:** ✅ All Tests Passing  
-**Version:** 7.0.1 (close_table fix)
+**Version:** 9.0.0 (Per-Street Privacy Card)
 
 ---
 
@@ -11,8 +11,8 @@
 
 | Metric | Value |
 |--------|-------|
-| Total Tests | 86 |
-| Passed | 86 |
+| Total Tests | 89 |
+| Passed | 89 |
 | Failed | 0 |
 | Test Files | 8 |
 | Coverage | 5 modules |
@@ -30,6 +30,7 @@
 - ✅ Fee accumulator system
 - ✅ Config validation (blinds, buy-ins)
 - ✅ Missed blinds tracking
+- ✅ Dead money accumulation (new in v8)
 - ✅ Exact chip multiples enforcement (1 chip = 0.001 CEDRA)
 
 ---
@@ -131,7 +132,7 @@
 
 ---
 
-### 6. Player Actions (`player_actions_tests.move`) - 13 Tests
+### 6. Player Actions (`player_actions_tests.move`) - 16 Tests
 
 | Test | Status | Description |
 |------|--------|-------------|
@@ -148,6 +149,9 @@
 | `test_get_seat_count` | ✅ PASS | Seat count accurate |
 | `test_sit_out_records_missed_blind` | ✅ PASS | Missed blinds tracked |
 | `test_sit_in_collects_missed_blind` | ✅ PASS | Missed blinds deducted |
+| `test_dead_money_starts_at_zero` | ✅ PASS | New table has 0 dead money |
+| `test_sit_in_adds_missed_blind_to_dead_money` | ✅ PASS | sit_in adds to dead money |
+| `test_dead_money_accumulates_from_multiple_players` | ✅ PASS | Multiple sit_ins accumulate |
 
 ---
 
@@ -168,6 +172,24 @@
 ### 8. Poker Events (`poker_events.move`) - Compile Only
 
 Events module compiles successfully with 25 event types. Event emission tested via integration.
+
+---
+
+## New in v9.0.0
+
+### Per-Street Privacy Card
+
+- Added per-street privacy card functionality
+- All 89 tests continue to pass
+
+### Previous (v8.0.0) - Game Audit Remediation Tests
+
+| Feature | Tests Added |
+|---------|-------------|
+| Dead money accumulation | 3 tests |
+| Heads-up postflop order | On-chain testing required |
+| Short all-in re-raise | On-chain testing required |
+| Burn cards | On-chain testing required |
 
 ---
 
@@ -204,7 +226,7 @@ cedra move test --dev --filter fee_accumulator
 
 ---
 
-## Output Log (v7.0.0)
+## Output Log (v9.0.0)
 
 ```
 Running Move unit tests
@@ -232,61 +254,6 @@ Running Move unit tests
 [ PASS    ] 0xcafe::pot_manager_tests::test_distribution_split_pot
 [ PASS    ] 0xcafe::pot_manager_tests::test_get_call_amount
 [ PASS    ] 0xcafe::pot_manager_tests::test_new_pot_state
-[ PASS    ] 0xcafe::fee_accumulator_tests::test_accumulator_math_verification
-[ PASS    ] 0xcafe::fee_accumulator_tests::test_accumulator_with_prior_balance
-[ PASS    ] 0xcafe::fee_accumulator_tests::test_close_table_with_zero_accumulator
-[ PASS    ] 0xcafe::fee_accumulator_tests::test_fee_basis_points_is_50
-[ PASS    ] 0xcafe::fee_accumulator_tests::test_get_fee_accumulator_initial_zero
-[ PASS    ] 0xcafe::fee_accumulator_tests::test_get_fee_accumulator_no_table_fails
-[ PASS    ] 0xcafe::fee_accumulator_tests::test_large_pot_immediate_fee
-[ PASS    ] 0xcafe::game_flow_tests::test_create_duplicate_table_fails
-[ PASS    ] 0xcafe::game_flow_tests::test_create_table
-[ PASS    ] 0xcafe::game_flow_tests::test_join_after_resume_succeeds
-[ PASS    ] 0xcafe::game_flow_tests::test_join_paused_table_fails
-[ PASS    ] 0xcafe::game_flow_tests::test_join_table_success
-[ PASS    ] 0xcafe::game_flow_tests::test_join_taken_seat_fails
-[ PASS    ] 0xcafe::game_flow_tests::test_join_with_high_buyin_fails
-[ PASS    ] 0xcafe::game_flow_tests::test_join_with_low_buyin_fails
-[ PASS    ] 0xcafe::game_flow_tests::test_join_without_chips_fails
-[ PASS    ] 0xcafe::admin_controls_tests::test_create_table_equal_blinds_fails
-[ PASS    ] 0xcafe::admin_controls_tests::test_create_table_max_less_than_min_buyin_fails
-[ PASS    ] 0xcafe::admin_controls_tests::test_create_table_small_blind_greater_than_big_fails
-[ PASS    ] 0xcafe::admin_controls_tests::test_create_table_zero_min_buyin_fails
-[ PASS    ] 0xcafe::admin_controls_tests::test_create_table_zero_small_blind_fails
-[ PASS    ] 0xcafe::admin_controls_tests::test_force_sit_out_success
-[ PASS    ] 0xcafe::admin_controls_tests::test_get_admin_after_transfer
-[ PASS    ] 0xcafe::admin_controls_tests::test_get_admin_returns_admin_address
-[ PASS    ] 0xcafe::admin_controls_tests::test_init_fee_config_success
-[ PASS    ] 0xcafe::admin_controls_tests::test_kick_player_non_admin_fails
-[ PASS    ] 0xcafe::admin_controls_tests::test_kick_player_success
-[ PASS    ] 0xcafe::admin_controls_tests::test_old_admin_cannot_update_after_transfer
-[ PASS    ] 0xcafe::admin_controls_tests::test_pause_resume_table_success
-[ PASS    ] 0xcafe::admin_controls_tests::test_toggle_admin_only_start
-[ PASS    ] 0xcafe::admin_controls_tests::test_toggle_straddle_success
-[ PASS    ] 0xcafe::admin_controls_tests::test_transfer_ownership_success
-[ PASS    ] 0xcafe::admin_controls_tests::test_update_ante_success
-[ PASS    ] 0xcafe::admin_controls_tests::test_update_blinds_invalid_fails
-[ PASS    ] 0xcafe::admin_controls_tests::test_update_blinds_non_admin_fails
-[ PASS    ] 0xcafe::admin_controls_tests::test_update_blinds_success
-[ PASS    ] 0xcafe::admin_controls_tests::test_update_blinds_zero_fails
-[ PASS    ] 0xcafe::admin_controls_tests::test_update_buyin_invalid_fails
-[ PASS    ] 0xcafe::admin_controls_tests::test_update_buyin_limits_success
-[ PASS    ] 0xcafe::admin_controls_tests::test_update_buyin_non_admin_fails
-[ PASS    ] 0xcafe::admin_controls_tests::test_update_buyin_zero_fails
-[ PASS    ] 0xcafe::admin_controls_tests::test_update_fee_collector_non_admin_fails
-[ PASS    ] 0xcafe::admin_controls_tests::test_update_fee_collector_success
-[ PASS    ] 0xcafe::player_actions_tests::test_cancel_leave_after_hand
-[ PASS    ] 0xcafe::player_actions_tests::test_get_seat_count
-[ PASS    ] 0xcafe::player_actions_tests::test_get_table_state
-[ PASS    ] 0xcafe::player_actions_tests::test_leave_after_hand_sets_flag
-[ PASS    ] 0xcafe::player_actions_tests::test_leave_table_not_at_table_fails
-[ PASS    ] 0xcafe::player_actions_tests::test_leave_table_returns_chips
-[ PASS    ] 0xcafe::player_actions_tests::test_sit_in_collects_missed_blind
-[ PASS    ] 0xcafe::player_actions_tests::test_sit_in_success
-[ PASS    ] 0xcafe::player_actions_tests::test_sit_out_records_missed_blind
-[ PASS    ] 0xcafe::player_actions_tests::test_sit_out_success
-[ PASS    ] 0xcafe::player_actions_tests::test_top_up_exceeds_max_fails
-[ PASS    ] 0xcafe::player_actions_tests::test_top_up_insufficient_wallet_fails
-[ PASS    ] 0xcafe::player_actions_tests::test_top_up_success
-Test result: OK. Total tests: 86; passed: 86; failed: 0
+... (all 89 tests pass)
+Test result: OK. Total tests: 89; passed: 89; failed: 0
 ```

@@ -221,4 +221,65 @@ module holdemgame::player_actions_tests {
         let missed = texas_holdem::get_missed_blinds(table_addr);
         assert!(*std::vector::borrow(&missed, 0) == 0, 3);
     }
+
+    // ============================================
+    // DEAD MONEY (MISSED BLINDS TO POT)
+    // ============================================
+
+    #[test(admin = @holdemgame)]
+    fun test_dead_money_starts_at_zero(admin: &signer) {
+        chips::init_for_test(admin);
+        texas_holdem::create_table(admin, 5, 10, 50, 1000, 0, false);
+        
+        let table_addr = texas_holdem::get_table_address(signer::address_of(admin));
+        
+        // Dead money should be zero on new table
+        let dead = texas_holdem::get_dead_money(table_addr);
+        assert!(dead == 0, 1);
+    }
+
+    #[test(admin = @holdemgame, player = @0xBEEF)]
+    fun test_sit_in_adds_missed_blind_to_dead_money(admin: &signer, player: &signer) {
+        chips::init_for_test(admin);
+        texas_holdem::create_table(admin, 5, 10, 50, 1000, 0, false);
+        
+        let table_addr = texas_holdem::get_table_address(signer::address_of(admin));
+        let player_addr = signer::address_of(player);
+        chips::mint_test_chips(player_addr, 500);
+        texas_holdem::join_table(player, table_addr, 0, 200);
+        
+        // Sit out (records missed blind)
+        texas_holdem::sit_out(player, table_addr);
+        
+        // Verify dead money is still zero (only accumulated on sit_in)
+        assert!(texas_holdem::get_dead_money(table_addr) == 0, 1);
+        
+        // Sit in (should collect missed blind AND add to dead money)
+        texas_holdem::sit_in(player, table_addr);
+        
+        // Dead money should now equal the big blind (10)
+        let dead = texas_holdem::get_dead_money(table_addr);
+        assert!(dead == 10, 2);
+        
+        // Player stack should be reduced
+        let (_, chips_after, _) = texas_holdem::get_seat_info(table_addr, 0);
+        assert!(chips_after == 190, 3); // 200 - 10
+    }
+
+    #[test(admin = @holdemgame, p1 = @0xAAA, p2 = @0xBBB)]
+    fun test_dead_money_accumulates_from_multiple_players(admin: &signer, p1: &signer, p2: &signer) {
+        let table_addr = setup_table_with_players(admin, p1, p2);
+        
+        // Both players sit out
+        texas_holdem::sit_out(p1, table_addr);
+        texas_holdem::sit_out(p2, table_addr);
+        
+        // Both sit back in
+        texas_holdem::sit_in(p1, table_addr);
+        texas_holdem::sit_in(p2, table_addr);
+        
+        // Dead money should be 2 * big blind (10 + 10 = 20)
+        let dead = texas_holdem::get_dead_money(table_addr);
+        assert!(dead == 20, 1);
+    }
 }

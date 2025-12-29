@@ -96,8 +96,8 @@ module holdemgame::chips {
             string::utf8(b"Poker Chips"),
             string::utf8(b"CHIP"),
             CHIP_DECIMALS,
-            string::utf8(b"https://example.com/chip.png"), // Icon URL
-            string::utf8(b"https://example.com"), // Project URL
+            string::utf8(b"https://inferenco.github.io/useful-images/poker/Chip.png"), // Icon URL
+            string::utf8(b"https://5-seat-texas-hold-em-frontend.vercel.app"), // Project URL
         );
         
         let metadata = object::object_from_constructor_ref<Metadata>(&constructor_ref);

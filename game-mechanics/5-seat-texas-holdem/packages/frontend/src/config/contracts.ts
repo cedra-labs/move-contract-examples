@@ -2,8 +2,8 @@
  * Contract configuration for the Texas Hold'em game
  */
 
-// Deployed contract address on Cedra testnet (v7 profile - fresh deployment with close_table fix)
-export const CONTRACT_ADDRESS = "0xa24365cad90b74eca7f078f8c91b327c0716bcea3ed64dc9d97027b605b4fcfa";
+// Deployed contract address on Cedra testnet (v9 profile - per-street privacy card)
+export const CONTRACT_ADDRESS = "0x4d97eb2810ce8182e922f909a2989409d7973fcde2567eb7e22afa02b94e19f2";
 
 // Module names
 export const MODULES = {

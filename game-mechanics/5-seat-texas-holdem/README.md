@@ -1,4 +1,5 @@
 # 5-Seat Texas Hold'em
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 A decentralized 5-seat Texas Hold'em poker game built on the Cedra blockchain with Move smart contracts and a React frontend.
 
@@ -26,7 +27,7 @@ flowchart LR
 ├── packages/
 │   ├── contracts/          # Move smart contracts
 │   │   ├── sources/        # Contract source files
-│   │   ├── tests/          # Contract tests (86 tests)
+│   │   ├── tests/          # Contract tests (89 tests)
 │   │   ├── docs/           # Contract documentation
 │   │   └── Move.toml       # Move package config
 │   └── frontend/           # React + TypeScript frontend
@@ -90,8 +91,8 @@ The Move smart contracts handle:
 ### Current Deployment
 
 - **Network:** Cedra Testnet
-- **Address:** `0xa24365cad90b74eca7f078f8c91b327c0716bcea3ed64dc9d97027b605b4fcfa`
-- **Version:** 7.0.1 (close_table fix)
+- **Address:** `0x4d97eb2810ce8182e922f909a2989409d7973fcde2567eb7e22afa02b94e19f2`
+- **Version:** 9.0.0 (Per-Street Privacy Card)
 - **Fee Rate:** 0.5% (with fractional accumulator for precise collection)
 
 See [`packages/contracts/docs/DOCUMENTATION.md`](packages/contracts/docs/DOCUMENTATION.md) for detailed contract documentation.
@@ -163,9 +164,9 @@ Create `packages/frontend/.env`:
 
 ```env
 VITE_NETWORK=testnet
-VITE_CONTRACT_ADDRESS=0xda25a2e27020e30031b4ae037e6c32b22a9a2f909c4bfecc5f020f3a2028f8ea
+VITE_CONTRACT_ADDRESS=0x4d97eb2810ce8182e922f909a2989409d7973fcde2567eb7e22afa02b94e19f2
 ```
 
 ## 📄 License
 
-Proprietary — Copyright (c) 2025 Singularity Shift Ltd & Spielcrypto Ltd. All rights reserved.
+MIT License. See `LICENSE`.

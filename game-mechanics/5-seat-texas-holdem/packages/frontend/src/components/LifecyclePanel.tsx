@@ -134,6 +134,8 @@ export function LifecyclePanel({
             setStatus(null);
             await action();
             setStatus("Action submitted. Refreshing table...");
+            // Small delay to allow RPC nodes to propagate the new state
+            await new Promise(resolve => setTimeout(resolve, 1000));
             await onRefresh();
         } catch (err) {
             console.error(`Lifecycle action "${actionName}" failed:`, err);

@@ -4,7 +4,7 @@ version = "1.0.0"
 upgrade_policy = "compatible"
 
 [addresses]
-holdemgame = "_"
+holdemgame = "0x4d97eb2810ce8182e922f909a2989409d7973fcde2567eb7e22afa02b94e19f2"
 
 [dev-addresses]
 holdemgame = "0xCAFE"

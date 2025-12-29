@@ -30,6 +30,8 @@ export function ActionPanel({ tableAddress, gameState, seatInfo, onAction }: Act
         try {
             setLoading(true);
             await action();
+            // Small delay to allow RPC nodes to propagate the new state
+            await new Promise(resolve => setTimeout(resolve, 1000));
             onAction();
         } catch (err) {
             console.error("Action failed:", err);
