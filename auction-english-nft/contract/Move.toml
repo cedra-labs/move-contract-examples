@@ -1,0 +1,16 @@
+[package]
+name = "auction_english_nft"
+version = "1.0.0"
+authors = []
+
+[addresses]
+AuctionEnglishNFT = "0xbb069da2302ce3a4e75d57238b230a62fd7f272870fcee2c005067d970068805"
+
+[dev-addresses]
+AuctionEnglishNFT = "0xcafe"
+
+[dependencies]
+CedraFramework = { git = "https://github.com/cedra-labs/cedra-framework.git", subdir = "cedra-framework", rev = "main" }
+CedraTokenObjects = { git = "https://github.com/cedra-labs/cedra-framework.git", subdir = "cedra-token-objects", rev = "main" }
+
+[dev-dependencies]

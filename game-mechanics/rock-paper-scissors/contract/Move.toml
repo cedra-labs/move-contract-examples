@@ -1,0 +1,16 @@
+[package]
+name = "rock_paper_scissors"
+version = "1.0.0"
+authors = []
+
+[addresses]
+RockPaperScissors = "0xbb069da2302ce3a4e75d57238b230a62fd7f272870fcee2c005067d970068805"
+
+[dev-addresses]
+RockPaperScissors = "0xcafe"
+
+[dependencies]
+CedraFramework = { git = "https://github.com/cedra-labs/cedra-framework.git", subdir = "cedra-framework", rev = "main" }
+
+[dev-dependencies]
+

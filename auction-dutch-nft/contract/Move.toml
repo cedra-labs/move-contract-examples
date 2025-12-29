@@ -1,0 +1,17 @@
+[package]
+name = "auction_dutch_nft"
+version = "1.0.0"
+authors = []
+
+[addresses]
+AuctionDutchNFT = "_"
+
+[dev-addresses]
+AuctionDutchNFT = "0xcafe"
+
+[dependencies]
+CedraFramework = { git = "https://github.com/cedra-labs/cedra-framework.git", subdir = "cedra-framework", rev = "main" }
+CedraTokenObjects = { git = "https://github.com/cedra-labs/cedra-framework.git", subdir = "cedra-token-objects", rev = "main" }
+
+[dev-dependencies]
+
