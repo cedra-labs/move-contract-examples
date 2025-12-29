@@ -1,0 +1,15 @@
+[package]
+name = "CedraGrants"
+version = "1.0.0"
+upgrade_policy = "compatible"
+authors = ["CedraGrants Team"]
+
+[addresses]
+cedra_grants = "_"
+cedra_framework = "0x1"
+
+[dev-addresses]
+cedra_grants = "0x42"
+
+[dependencies]
+CedraFramework = { git = "https://github.com/cedra-labs/cedra-network.git", subdir = "cedra-move/framework/cedra-framework", rev = "main" }
