@@ -159,27 +159,33 @@ Backend (Node.js + Express)
 git clone [https://github.com/your-org/cedra-assistant](https://github.com/your-org/cedra-assistant)
 cd cedra-assistant
 npm install
+```
 
-3️⃣ Environment Variables
+### 3️⃣ Environment Variables
 Create a .env file in the root directory:
 
 Code snippet
-
+```bash
 GEMINI_API_KEY=your_key_here
 CEDRA_REST_URL=[https://testnet.cedra.dev](https://testnet.cedra.dev)
 SESSION_SECRET=your_secret
 GOOGLE_CLIENT_ID=optional
 GOOGLE_CLIENT_SECRET=optional
-4️⃣ Run Database Initialization
+```
+
+### 4️⃣ Run Database Initialization
 SQLite auto-initializes on the first run.
 
-5️⃣ Start the Server
+
+### 5️⃣ Start the Server
+```bash
 Bash
 
 npm run dev
 The server will run at: http://localhost:3000
+```
 
-🧪 Testing Instructions
+# 🧪 Testing Instructions
 Start server.
 
 Login via Google OAuth or session.
@@ -203,7 +209,7 @@ Example 2 — Transaction Analysis: Explain this transaction 0xdef456...
 
 Example 3 — Documentation Question: How do I initialize a Cedra client using the TypeScript SDK?
 
-🧰 Tech Stack
+# 🧰 Tech Stack
 Frontend: Vanilla HTML / CSS / JavaScript
 
 Backend: Node.js, Express
@@ -216,7 +222,7 @@ RAG: Embeddings + Vector Retrieval
 
 Auth: Passport.js (Google OAuth)
 
-🧩 Design Decisions
+# 🧩 Design Decisions
 SQLite: Chosen for simplicity and hackathon speed.
 
 Strict RAG Mode: Implemented to prioritize accuracy and prevent hallucinations.
@@ -225,14 +231,14 @@ Readable Output: Focused on human-readable explorer data for non-developer users
 
 Minimalist UI: Designed for maximum clarity and performance.
 
-⚠️ Known Limitations
+# ⚠️ Known Limitations
 SQLite is not intended for massive scale (acceptable for hackathon).
 
 UI animations are intentionally minimal.
 
 Vector store is currently local (can be upgraded to a dedicated vector DB).
 
-🛠️ Future Improvements
+# 🛠️ Future Improvements
 [ ] Streaming responses
 
 [ ] Syntax-highlighted code blocks
