@@ -1,0 +1,351 @@
+:root {
+  --bg-main: #0b0b0b;
+  --bg-sidebar: #0a0d12;
+  --bg-card: #12151c;
+  --bg-input: #0f131a;
+
+  --border: #1f2937;
+  --accent: #3b82f6;
+
+  --text-primary: #e5e7eb;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg-main);
+  color: var(--text-primary);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  overflow: hidden;
+}
+
+/* APP */
+.app {
+  display: flex;
+  height: 100vh;
+}
+
+/* ================= SIDEBAR ================= */
+.sidebar {
+  width: 280px;
+  background: linear-gradient(to bottom, #0a0d12, #07090e);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-header {
+  padding: 16px;
+}
+
+.new-chat {
+  width: 100%;
+  background: var(--accent);
+  border: none;
+  color: white;
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+/* Conversation list */
+#conversation-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.conversation {
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.conversation:hover {
+  background: rgba(255,255,255,0.05);
+  color: var(--text-primary);
+}
+
+.conversation.active {
+  background: linear-gradient(
+    180deg,
+    rgba(59,130,246,0.20),
+    rgba(59,130,246,0.08)
+  );
+  color: #eaf1ff;
+  border: 1px solid rgba(59,130,246,0.35);
+}
+
+/* ================= SIDEBAR FOOTER ================= */
+.sidebar-footer {
+  padding: 16px;
+  border-top: 1px solid var(--border);
+  background: linear-gradient(to top, #0a0d12, #07090e);
+}
+
+.user-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #1f2937;
+}
+
+.user-meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-name {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.user-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.auth-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.auth-btn {
+  flex: 1;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 8px 0;
+  border-radius: 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.auth-btn:hover {
+  background: rgba(255,255,255,0.05);
+  color: var(--text-primary);
+}
+
+/* ================= MAIN ================= */
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ================= HEADER ================= */
+.top-header {
+  height: 64px;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--border);
+  background: radial-gradient(circle at top, #111827, #0b0b0b);
+}
+
+.header-left {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.brand {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.header-right a {
+  color: var(--text-secondary);
+  margin-left: 14px;
+  text-decoration: none;
+}
+
+/* ================= CHAT ================= */
+.chat-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+}
+
+.messages {
+  flex: 1;
+  width: 100%;
+  max-width: 920px;
+  padding: 32px 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* ================= MESSAGES ================= */
+.message {
+  max-width: 85%;
+  padding: 18px 20px;
+  border-radius: 16px;
+  line-height: 1.7;
+  border: 1px solid var(--border);
+  animation: fadeIn 0.25s ease;
+}
+
+/* Assistant */
+.message.assistant {
+  align-self: flex-start;
+  background: linear-gradient(180deg, #141821, #0f131a);
+  color: var(--text-primary);
+}
+
+/* User */
+.message.user {
+  align-self: flex-end;
+  background: linear-gradient(
+    180deg,
+    rgba(59,130,246,0.18),
+    rgba(59,130,246,0.06)
+  );
+  border-color: rgba(59,130,246,0.45);
+  color: #eaf1ff;
+}
+
+/* Paragraph rhythm */
+.message p {
+  margin: 0 0 14px;
+}
+
+/* Code blocks */
+.message pre {
+  background: #020617;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  overflow-x: auto;
+}
+
+/* ================= INPUT ================= */
+.input-area {
+  width: 100%;
+  max-width: 920px;
+  padding: 16px;
+  background: linear-gradient(to top, var(--bg-main) 70%, transparent);
+}
+
+.input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 14px 16px;
+}
+
+#input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 15px;
+  outline: none;
+}
+
+#send-btn {
+  background: var(--accent);
+  border: none;
+  color: white;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+/* FOOTER NOTE */
+.footer-note {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding-bottom: 12px;
+}
+
+/* Animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.header-icon {
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  transition: color 0.15s ease;
+}
+
+.header-icon:hover {
+  color: var(--text-primary);
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 14px; /* spacing between icons */
+}
+
+/* Shared icon style */
+.header-icon {
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  transition: background 0.15s ease, color 0.15s ease;
+  text-decoration: none;
+  font-size: 18px; /* for 🌐 */
+}
+
+/* Hover effect */
+.header-icon:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+/* SVG inherits color cleanly */
+.header-icon svg {
+  display: block;
+}
