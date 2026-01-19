@@ -43,6 +43,10 @@ Collection of Move examples for the Cedra ecosystem. Each subproject focuses on 
 - Faucets — example assets and a simple minting utility
   - Source: [`faucets/`](faucets/)
 
+- Randomness Example — on-chain random selection using Cedra's secure randomness
+  - Source: [`randomness-example/`](randomness-example/)
+  - Guide: [`randomness-example/README.md`](randomness-example/README.md)
+
 ## Getting Started
 
 Contracts can be compiled, tested, and published with the Cedra CLI:
