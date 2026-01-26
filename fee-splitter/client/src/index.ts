@@ -25,6 +25,15 @@ interface SplitterInfo {
   total_shares: string;
 }
 
+interface SplitterDetails {
+  recipients: Recipient[];
+  total_shares: string;
+  owner: string;
+  paused: boolean;
+  created_at: string;
+  total_distributed: string;
+}
+
 /**
  * Fee Splitter Client Class
  */
@@ -229,21 +238,163 @@ class FeeSplitterClient {
   }
 
   /**
-   * Check if a given address is a recipient in the splitter
+   * Get detailed splitter information including owner, paused status, and stats
    */
-  async isRecipient(splitterAddress: AccountAddress, recipientAddress: AccountAddress): Promise<boolean> {
+  async getSplitterDetails(splitterAddress: AccountAddress): Promise<SplitterDetails | null> {
     try {
       const result = await this.cedra.view({
         payload: {
-          function: `${this.moduleAddress}::${this.moduleName}::is_recipient`,
-          functionArguments: [splitterAddress.toString(), recipientAddress.toString()]
+          function: `${this.moduleAddress}::${this.moduleName}::get_splitter_details`,
+          functionArguments: [splitterAddress.toString()]
         }
       });
-      
-      return result[0] as boolean;
+
+      const [recipients, totalShares, owner, paused, createdAt, totalDistributed] = result as [Recipient[], string, string, boolean, string, string];
+
+      const splitterDetails: SplitterDetails = {
+        recipients,
+        total_shares: totalShares,
+        owner,
+        paused,
+        created_at: createdAt,
+        total_distributed: totalDistributed
+      };
+
+      console.log("📊 Splitter Details:");
+      console.log(`   Owner: ${owner}`);
+      console.log(`   Paused: ${paused}`);
+      console.log(`   Total Shares: ${totalShares}`);
+      console.log(`   Total Distributed: ${totalDistributed}`);
+      console.log(`   Created At: ${createdAt}`);
+      console.log(`   Recipients:`);
+      recipients.forEach((recipient, index) => {
+        const percentage = (parseInt(recipient.share) / parseInt(totalShares) * 100).toFixed(2);
+        console.log(`     ${index + 1}. ${recipient.addr} - ${recipient.share} shares (${percentage}%)`);
+      });
+
+      return splitterDetails;
     } catch (error) {
-      console.error("❌ Error checking if address is recipient:", error);
-      return false;
+      console.error("❌ Error getting splitter details:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Update splitter recipients and shares (owner only)
+   */
+  async updateSplitter(
+    owner: Account,
+    recipients: Array<{ address: AccountAddress; share: number }>
+  ): Promise<string> {
+    // Prepare separate arrays for addresses and shares
+    const addresses = recipients.map(r => r.address.toString());
+    const shares = recipients.map(r => r.share.toString());
+
+    try {
+      const transaction = await this.cedra.transaction.build.simple({
+        sender: owner.accountAddress,
+        data: {
+          function: `${this.moduleAddress}::${this.moduleName}::update_splitter`,
+          functionArguments: [addresses, shares]
+        }
+      });
+
+      const response = await this.cedra.signAndSubmitTransaction({
+        signer: owner,
+        transaction
+      });
+
+      await this.cedra.waitForTransaction({ transactionHash: response.hash });
+      console.log("✅ Fee splitter updated successfully!");
+
+      return response.hash;
+    } catch (error) {
+      console.error("❌ Error updating splitter:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Pause or unpause the splitter (owner only)
+   */
+  async setPaused(owner: Account, paused: boolean): Promise<string> {
+    try {
+      const transaction = await this.cedra.transaction.build.simple({
+        sender: owner.accountAddress,
+        data: {
+          function: `${this.moduleAddress}::${this.moduleName}::set_paused`,
+          functionArguments: [paused]
+        }
+      });
+
+      const response = await this.cedra.signAndSubmitTransaction({
+        signer: owner,
+        transaction
+      });
+
+      await this.cedra.waitForTransaction({ transactionHash: response.hash });
+      console.log(`✅ Fee splitter ${paused ? 'paused' : 'unpaused'} successfully!`);
+
+      return response.hash;
+    } catch (error) {
+      console.error(`❌ Error ${paused ? 'pausing' : 'unpausing'} splitter:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Transfer ownership of the splitter
+   */
+  async transferOwnership(owner: Account, newOwner: AccountAddress): Promise<string> {
+    try {
+      const transaction = await this.cedra.transaction.build.simple({
+        sender: owner.accountAddress,
+        data: {
+          function: `${this.moduleAddress}::${this.moduleName}::transfer_ownership`,
+          functionArguments: [newOwner.toString()]
+        }
+      });
+
+      const response = await this.cedra.signAndSubmitTransaction({
+        signer: owner,
+        transaction
+      });
+
+      await this.cedra.waitForTransaction({ transactionHash: response.hash });
+      console.log("✅ Ownership transferred successfully!");
+
+      return response.hash;
+    } catch (error) {
+      console.error("❌ Error transferring ownership:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete the splitter (owner only, only if no distributions have occurred)
+   */
+  async deleteSplitter(owner: Account): Promise<string> {
+    try {
+      const transaction = await this.cedra.transaction.build.simple({
+        sender: owner.accountAddress,
+        data: {
+          function: `${this.moduleAddress}::${this.moduleName}::delete_splitter`,
+          functionArguments: []
+        }
+      });
+
+      const response = await this.cedra.signAndSubmitTransaction({
+        signer: owner,
+        transaction
+      });
+
+      await this.cedra.waitForTransaction({ transactionHash: response.hash });
+      console.log("✅ Fee splitter deleted successfully!");
+
+      return response.hash;
+    } catch (error) {
+      console.error("❌ Error deleting splitter:", error);
+      throw error;
     }
   }
 }
@@ -263,7 +414,7 @@ const handleExample = async () => {
     const recipient2 = Account.generate();
     const recipient3 = Account.generate();
     const payer = Account.generate();
-    const nonRecipient = Account.generate();
+    const newOwner = Account.generate();
 
     // Fund accounts
     await client.fundAccount(creator.accountAddress);
@@ -271,8 +422,9 @@ const handleExample = async () => {
     await client.fundAccount(recipient2.accountAddress, ONE_CEDRA / 10);
     await client.fundAccount(recipient3.accountAddress, ONE_CEDRA / 10);
     await client.fundAccount(payer.accountAddress);
-    await client.fundAccount(nonRecipient.accountAddress);
+    await client.fundAccount(newOwner.accountAddress);
 
+    console.log("📝 Creating fee splitter...");
     // Create fee splitter
     const recipients = [
       { address: recipient1.accountAddress, share: 50 },
@@ -281,16 +433,41 @@ const handleExample = async () => {
     ];
 
     await client.createSplitter(creator, recipients);
-    await client.getSplitterInfo(creator.accountAddress);
 
-    const isRecip = await client.isRecipient(creator.accountAddress, recipient1.accountAddress);
-    console.log(`Is Recipient 1 a recipient? ${isRecip}`);
-    
-    const isNonRecip = await client.isRecipient(creator.accountAddress, nonRecipient.accountAddress);
-    console.log(`Is the non-recipient address a recipient? ${isNonRecip}`);
+    console.log("📊 Getting splitter details...");
+    await client.getSplitterDetails(creator.accountAddress);
 
+    console.log("🔄 Updating splitter recipients...");
+    const updatedRecipients = [
+      { address: recipient1.accountAddress, share: 40 },
+      { address: recipient2.accountAddress, share: 35 },
+      { address: recipient3.accountAddress, share: 25 }
+    ];
+    await client.updateSplitter(creator, updatedRecipients);
+    await client.getSplitterDetails(creator.accountAddress);
+
+    console.log("⏸️  Pausing splitter...");
+    await client.setPaused(creator, true);
+    await client.getSplitterDetails(creator.accountAddress);
+
+    console.log("▶️  Unpausing splitter...");
+    await client.setPaused(creator, false);
+
+    console.log("💰 Distributing fees...");
     // Distribute fees
     await client.distributeFees(payer, creator.accountAddress, EXAMPLE_AMOUNT);
+
+    console.log("👤 Transferring ownership...");
+    await client.transferOwnership(creator, newOwner.accountAddress);
+    await client.getSplitterDetails(creator.accountAddress);
+
+    console.log("🗑️  Deleting splitter...");
+    // Note: This will fail if distributions have occurred, which is expected
+    try {
+      await client.deleteSplitter(creator);
+    } catch (error) {
+      console.log("⚠️  Cannot delete splitter with distributions - this is expected!");
+    }
 
     console.log("🎉 Example completed successfully!");
 
@@ -319,7 +496,7 @@ const main = async () => {
 };
 
 // Export the client class for use in other modules
-export { FeeSplitterClient, Recipient, SplitterInfo };
+export { FeeSplitterClient, Recipient, SplitterInfo, SplitterDetails };
 
 // Run if this is the main module
 if (import.meta.url === `file://${process.argv[1]}`) {
