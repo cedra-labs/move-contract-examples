@@ -5,17 +5,22 @@
     "main": "src/first-transaction.ts",
     "scripts": {
       "start": "ts-node src/first-transaction.ts",
+      "dev": "ts-node src/first-transaction.ts",
+      "dry-run": "DRY_RUN=true ts-node src/first-transaction.ts",
+      "mainnet": "CEDRA_NETWORK=mainnet ts-node src/first-transaction.ts",
       "build": "tsc",
-      "clean": "rm -rf dist"
+      "clean": "rm -rf dist",
+      "lint": "tsc --noEmit"
     },
     "keywords": ["cedra", "blockchain", "transaction", "tutorial"],
     "license": "Apache-2.0",
     "dependencies": {
-      "@cedra-labs/ts-sdk": "^2.2.1"
+      "@cedra-labs/ts-sdk": "^2.2.1",
+      "dotenv": "^16.3.1"
     },
     "devDependencies": {
       "@types/node": "^20.0.0",
       "ts-node": "^10.9.1",
       "typescript": "^5.0.0"
     }
-  }
+}
