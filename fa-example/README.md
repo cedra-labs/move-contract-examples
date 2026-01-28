@@ -42,6 +42,12 @@ cedra move publish --named-addresses CedraFungible=default
 cedra account list --query modules
 ```
 
+5. (optional) Run tests
+
+```bash
+cedra move test
+```
+
 ## Setting Up and Running the Client
 
 1. Navigate to the client directory:
@@ -87,7 +93,9 @@ This demo performs a complete lifecycle of CedraAsset token operations:
 
 5. Transfers tokens from User back to Admin (250 tokens)
 
-6. Verifies the final token balances after all operations
+6. Burns tokens from User's account (optional - demonstrates burn functionality)
+
+7. Verifies the final token balances after all operations
 
 ## Troubleshooting
 
@@ -104,6 +112,7 @@ The Move contract implements a fungible asset with the following functions:
 
 - `mint`: Mints new tokens to a specified account (only callable by admin)
 - `transfer`: Transfers tokens between accounts
+- `burn`: Burns tokens from the caller's account (any user can burn their own tokens)
 
 ## License
 
