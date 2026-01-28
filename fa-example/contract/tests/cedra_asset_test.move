@@ -6,7 +6,6 @@ module CedraFungible::cedra_asset_test {
     use std::signer;
     use CedraFungible::CedraAsset;
 
-    #[test_only]
     const INITIAL_MINT_AMOUNT: u64 = 1000;
     const TRANSFER_AMOUNT: u64 = 100;
     const BURN_AMOUNT: u64 = 50;
@@ -218,6 +217,44 @@ module CedraFungible::cedra_asset_test {
         CedraAsset::burn(bob, 50);
         assert!(primary_fungible_store::balance(alice_addr, metadata) == 350, 4);
         assert!(primary_fungible_store::balance(bob_addr, metadata) == 350, 5);
+    }
+
+    #[test(admin = @CedraFungible, alice = @0xA11CE, bob = @0xB0B)]
+    fun test_self_transfer(admin: &signer, alice: &signer, bob: &signer) {
+        let (_admin_addr, alice_addr, _bob_addr, metadata) = setup_for_test(admin, alice, bob);
+        CedraAsset::mint(admin, alice_addr, 1000);
+
+        // Transfer to self
+        CedraAsset::transfer(alice, alice_addr, 100);
+
+        // Balance should remain unchanged
+        assert!(primary_fungible_store::balance(alice_addr, metadata) == 1000, 0);
+    }
+
+    #[test(admin = @CedraFungible, alice = @0xA11CE, bob = @0xB0B)]
+    #[expected_failure]
+    fun test_burn_zero_balance(admin: &signer, alice: &signer, bob: &signer) {
+        let (_admin_addr, _alice_addr, _bob_addr, _metadata) = setup_for_test(admin, alice, bob);
+        // Alice has no tokens, try to burn
+        CedraAsset::burn(alice, 1);
+    }
+
+    #[test(admin = @CedraFungible, alice = @0xA11CE, bob = @0xB0B)]
+    fun test_large_mint(admin: &signer, alice: &signer, bob: &signer) {
+        let (_admin_addr, alice_addr, _bob_addr, metadata) = setup_for_test(admin, alice, bob);
+        let large_amount: u64 = 18446744073709551615; // u64 max
+
+        CedraAsset::mint(admin, alice_addr, large_amount);
+
+        assert!(primary_fungible_store::balance(alice_addr, metadata) == large_amount, 0);
+    }
+
+    #[test(admin = @CedraFungible, alice = @0xA11CE, bob = @0xB0B)]
+    #[expected_failure]
+    fun test_transfer_zero_balance(admin: &signer, alice: &signer, bob: &signer) {
+        let (_admin_addr, _alice_addr, bob_addr, _metadata) = setup_for_test(admin, alice, bob);
+        // Alice has no tokens, try to transfer
+        CedraAsset::transfer(alice, bob_addr, 1);
     }
 }
 
