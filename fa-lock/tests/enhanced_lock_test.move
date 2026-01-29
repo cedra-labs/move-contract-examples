@@ -38,7 +38,7 @@ module lock_deployer::enhanced_lock_test {
 
     #[test(framework = @0x1, asset = @0xAAAAA, creator = @0x10C0, user = @0xCAFE)]
     fun test_pause_and_unpause(framework: &signer, asset: &signer, creator: &signer, user: &signer) {
-        let (creator_address, user_address, fa_metadata, lockup_obj) = setup_for_test(framework, asset, creator, user);
+        let (_creator_address, _user_address, _fa_metadata, lockup_obj) = setup_for_test(framework, asset, creator, user);
 
         // Contract should start unpaused
         assert!(!lock::is_paused(lockup_obj), 0);
@@ -126,9 +126,9 @@ module lock_deployer::enhanced_lock_test {
         user1: &signer,
         user2: &signer
     ) {
-        let (creator_address, user1_address, fa_metadata, lockup_obj) = setup_for_test(framework, asset, creator, user1);
+        let (_creator_address, user1_address, fa_metadata, lockup_obj) = setup_for_test(framework, asset, creator, user1);
         let user2_address = signer::address_of(user2);
-        
+
         // Mismatched vector lengths should fail
         let users = vector[user1_address, user2_address];
         let amounts = vector[50]; // Only one amount for two users
@@ -150,10 +150,10 @@ module lock_deployer::enhanced_lock_test {
             &creator_ref
         );
         
-        let creator_address = signer::address_of(creator);
+        let _creator_address = signer::address_of(creator);
         let user1_address = signer::address_of(user1);
         let user2_address = signer::address_of(user2);
-        
+
         primary_fungible_store::mint(&mint_ref, user1_address, 50);
         primary_fungible_store::mint(&mint_ref, user2_address, 50);
         
@@ -185,7 +185,7 @@ module lock_deployer::enhanced_lock_test {
 
     #[test(framework = @0x1, asset = @0xAAAAA, creator = @0x10C0, user = @0xCAFE)]
     fun test_partial_withdraw_simple_escrow(framework: &signer, asset: &signer, creator: &signer, user: &signer) {
-        let (creator_address, user_address, fa_metadata, lockup_obj) = setup_for_test(framework, asset, creator, user);
+        let (_creator_address, user_address, fa_metadata, lockup_obj) = setup_for_test(framework, asset, creator, user);
 
         // Escrow 50 tokens
         lock::escrow_funds_with_no_lockup(user, lockup_obj, fa_metadata, 50);
@@ -209,7 +209,7 @@ module lock_deployer::enhanced_lock_test {
 
     #[test(framework = @0x1, asset = @0xAAAAA, creator = @0x10C0, user = @0xCAFE)]
     fun test_partial_withdraw_time_locked(framework: &signer, asset: &signer, creator: &signer, user: &signer) {
-        let (creator_address, user_address, fa_metadata, lockup_obj) = setup_for_test(framework, asset, creator, user);
+        let (_creator_address, user_address, fa_metadata, lockup_obj) = setup_for_test(framework, asset, creator, user);
 
         // Escrow with time lock
         lock::escrow_funds_with_time(user, lockup_obj, fa_metadata, 50, TWO_HOURS_SECS);

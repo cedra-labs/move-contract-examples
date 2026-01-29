@@ -10,6 +10,7 @@ Secure time-locked escrow contract for Cedra fungible assets with advanced featu
 - **Partial Withdrawals** - Withdraw portions of escrowed funds
 - **Batch Operations** - Gas-efficient multi-user transactions
 - **Pause Mechanism** - Emergency halt capability
+- **Lockup Cleanup** - Delete empty lockup contracts to reclaim storage
 - **Comprehensive Events** - Full activity tracking
 - **Advanced View Functions** - Query contract state
 
@@ -71,11 +72,11 @@ lock::escrow_funds_with_time(
 // Full withdrawal (after unlock time for time-locked)
 lock::return_my_funds(user, lockup_obj, token_metadata);
 
-// Partial withdrawal (NEW!)
+// Partial withdrawal
 lock::partial_withdraw(user, lockup_obj, token_metadata, 50);
 ```
 
-### 4. Batch Operations (NEW!)
+### 4. Batch Operations
 
 ```move
 // Batch escrow for multiple users (e.g., team vesting)
@@ -101,7 +102,7 @@ lock::batch_return_user_funds(
 );
 ```
 
-### 5. Emergency Controls (NEW!)
+### 5. Emergency Controls
 
 ```move
 // Pause contract (creator only)
@@ -112,6 +113,16 @@ let is_paused = lock::is_paused(lockup_obj);
 
 // Unpause
 lock::unpause_lockup(creator, lockup_obj);
+```
+
+### 6. Cleanup Lockup Contract
+
+```move
+// Check if lockup exists
+let exists = lock::has_lockup(creator_address);
+
+// Delete empty lockup (all escrows must be cleared first)
+lock::delete_lockup(creator);
 ```
 
 ## API Reference
@@ -129,7 +140,7 @@ Escrow funds without time restrictions. Can be withdrawn anytime.
 #### `escrow_funds_with_time(caller, lockup_obj, fa_metadata, amount, lockup_time_secs)`
 Escrow funds with time lock. Locked until `now + lockup_time_secs`.
 
-#### `batch_escrow_with_time(caller, lockup_obj, fa_metadata, users, amounts, lockup_time_secs)` **NEW**
+#### `batch_escrow_with_time(caller, lockup_obj, fa_metadata, users, amounts, lockup_time_secs)`
 Batch escrow for multiple users. Only creator can call.
 
 ### Withdrawal Functions
@@ -137,13 +148,13 @@ Batch escrow for multiple users. Only creator can call.
 #### `return_my_funds(caller, lockup_obj, fa_metadata)`
 User withdraws their own escrowed funds (respects time locks).
 
-#### `partial_withdraw(caller, lockup_obj, fa_metadata, amount)` **NEW**
+#### `partial_withdraw(caller, lockup_obj, fa_metadata, amount)`
 Withdraw a portion of escrowed funds. Escrow remains active until balance is zero.
 
 #### `return_user_funds(caller, lockup_obj, fa_metadata, user)`
 Creator returns funds to a specific user (bypasses time lock).
 
-#### `batch_return_user_funds(caller, lockup_obj, fa_metadata, users)` **NEW**
+#### `batch_return_user_funds(caller, lockup_obj, fa_metadata, users)`
 Creator returns funds to multiple users in one transaction.
 
 ### Claim Functions
@@ -151,13 +162,18 @@ Creator returns funds to multiple users in one transaction.
 #### `claim_escrow(caller, lockup_obj, fa_metadata, user)`
 Creator claims escrowed funds to their own account.
 
-### Pause Controls **NEW**
+### Pause Controls
 
 #### `pause_lockup(caller, lockup_obj)`
 Pause the contract (prevents new escrows). Creator only.
 
 #### `unpause_lockup(caller, lockup_obj)`
 Unpause the contract. Creator only.
+
+### Cleanup Functions
+
+#### `delete_lockup(caller: &signer)`
+Deletes an empty lockup contract and returns storage deposit. Only creator can call. All escrows must be cleared first.
 
 ### View Functions
 
@@ -170,14 +186,17 @@ Get amount escrowed for a user. Returns `none()` if no escrow exists.
 #### `remaining_escrow_time(lockup_obj, fa_metadata, user): Option<u64>`
 Get remaining lock time in seconds. Returns 0 for unlocked/simple escrows.
 
-#### `is_paused(lockup_obj): bool` **NEW**
+#### `is_paused(lockup_obj): bool`
 Check if contract is paused.
 
-#### `get_creator(lockup_obj): address` **NEW**
+#### `get_creator(lockup_obj): address`
 Get contract creator/owner address.
 
-#### `escrow_exists(lockup_obj, fa_metadata, user): bool` **NEW**
+#### `escrow_exists(lockup_obj, fa_metadata, user): bool`
 Check if an escrow exists for a user-asset pair.
+
+#### `has_lockup(creator: address): bool`
+Check if a creator has an active lockup contract.
 
 ## Use Cases
 
@@ -275,6 +294,7 @@ Test coverage includes:
 - View functions
 - Time lock enforcement
 - Access control
+- Lockup cleanup/deletion
 
 ## Gas Optimization
 
@@ -323,6 +343,7 @@ E_CONTRACT_PAUSED: 10            // Contract is paused
 E_INSUFFICIENT_BALANCE: 11       // Not enough funds
 E_LENGTH_MISMATCH: 12            // Batch vectors don't match
 E_EMPTY_BATCH: 13                // Batch operation is empty
+E_LOCKUP_HAS_ESCROWS: 14         // Cannot delete lockup with active escrows
 ```
 
 ## Migration from v1.0
@@ -334,10 +355,10 @@ All existing functions work unchanged. New features are additive:
 escrow_funds_with_no_lockup(user, lockup, token, 100);
 return_my_funds(user, lockup, token);
 
-// New features available
-partial_withdraw(user, lockup, token, 50);  // NEW
-pause_lockup(creator, lockup);               // NEW
-batch_escrow_with_time(creator, ...);        // NEW
+// Additional features available
+partial_withdraw(user, lockup, token, 50);
+pause_lockup(creator, lockup);
+batch_escrow_with_time(creator, ...);
 ```
 
 ## Additional Resources
