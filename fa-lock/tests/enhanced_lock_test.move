@@ -366,4 +366,90 @@ module lock_deployer::enhanced_lock_test {
         // Try to add funds with shorter time - should fail
         lock::escrow_funds_with_time(user, lockup_obj, fa_metadata, 20, ONE_HOUR_SECS);
     }
+
+    // ===================== LOCKUP CLEANUP TESTS =====================
+
+    #[test(framework = @0x1, asset = @0xAAAAA, creator = @0x10C0, user = @0xCAFE)]
+    fun test_delete_empty_lockup(framework: &signer, asset: &signer, creator: &signer, user: &signer) {
+        let (creator_address, _user_address, _fa_metadata, _lockup_obj) = setup_for_test(framework, asset, creator, user);
+
+        // Verify lockup exists
+        assert!(lock::has_lockup(creator_address), 0);
+
+        // Delete empty lockup
+        lock::delete_lockup(creator);
+
+        // Verify LockupRef is gone
+        assert!(!lock::has_lockup(creator_address), 1);
+    }
+
+    #[test(framework = @0x1, asset = @0xAAAAA, creator = @0x10C0, user = @0xCAFE)]
+    #[expected_failure(abort_code = 14, location = lock_deployer::lock)]
+    fun test_cannot_delete_lockup_with_escrows(framework: &signer, asset: &signer, creator: &signer, user: &signer) {
+        let (_creator_address, _user_address, fa_metadata, lockup_obj) = setup_for_test(framework, asset, creator, user);
+
+        // Create an escrow
+        lock::escrow_funds_with_no_lockup(user, lockup_obj, fa_metadata, 50);
+
+        // Try to delete - should fail
+        lock::delete_lockup(creator);
+    }
+
+    #[test(framework = @0x1, asset = @0xAAAAA, creator = @0x10C0, user = @0xCAFE)]
+    #[expected_failure(abort_code = 2, location = lock_deployer::lock)]
+    fun test_non_creator_cannot_delete_lockup(framework: &signer, asset: &signer, creator: &signer, user: &signer) {
+        let (_creator_address, _user_address, _fa_metadata, _lockup_obj) = setup_for_test(framework, asset, creator, user);
+
+        // User tries to delete - should fail (no LockupRef for user)
+        lock::delete_lockup(user);
+    }
+
+    #[test(framework = @0x1, asset = @0xAAAAA, creator = @0x10C0, user = @0xCAFE)]
+    fun test_delete_after_clearing_escrows(framework: &signer, asset: &signer, creator: &signer, user: &signer) {
+        let (creator_address, user_address, fa_metadata, lockup_obj) = setup_for_test(framework, asset, creator, user);
+
+        // Create escrow
+        lock::escrow_funds_with_no_lockup(user, lockup_obj, fa_metadata, 50);
+
+        // Return funds to clear escrow
+        lock::return_user_funds(creator, lockup_obj, fa_metadata, user_address);
+
+        // Now delete should work
+        lock::delete_lockup(creator);
+        assert!(!lock::has_lockup(creator_address), 0);
+    }
+
+    // ===================== PAUSE DURING WITHDRAWAL TESTS =====================
+
+    #[test(framework = @0x1, asset = @0xAAAAA, creator = @0x10C0, user = @0xCAFE)]
+    fun test_can_withdraw_when_paused(framework: &signer, asset: &signer, creator: &signer, user: &signer) {
+        let (_creator_address, user_address, fa_metadata, lockup_obj) = setup_for_test(framework, asset, creator, user);
+
+        // Create escrow
+        lock::escrow_funds_with_no_lockup(user, lockup_obj, fa_metadata, 50);
+
+        // Pause contract
+        lock::pause_lockup(creator, lockup_obj);
+
+        // User should still be able to withdraw
+        lock::return_my_funds(user, lockup_obj, fa_metadata);
+
+        assert!(primary_fungible_store::balance(user_address, fa_metadata) == 100, 0);
+    }
+
+    #[test(framework = @0x1, asset = @0xAAAAA, creator = @0x10C0, user = @0xCAFE)]
+    fun test_can_partial_withdraw_when_paused(framework: &signer, asset: &signer, creator: &signer, user: &signer) {
+        let (_creator_address, user_address, fa_metadata, lockup_obj) = setup_for_test(framework, asset, creator, user);
+
+        // Create escrow
+        lock::escrow_funds_with_no_lockup(user, lockup_obj, fa_metadata, 50);
+
+        // Pause contract
+        lock::pause_lockup(creator, lockup_obj);
+
+        // User should still be able to partial withdraw
+        lock::partial_withdraw(user, lockup_obj, fa_metadata, 20);
+
+        assert!(primary_fungible_store::balance(user_address, fa_metadata) == 70, 0);
+    }
 }

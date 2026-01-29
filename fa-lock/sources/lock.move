@@ -219,6 +219,8 @@ module lock_deployer::lock {
     const E_LENGTH_MISMATCH: u64 = 12;
     /// Empty batch operation not allowed
     const E_EMPTY_BATCH: u64 = 13;
+    /// Cannot delete lockup with active escrows
+    const E_LOCKUP_HAS_ESCROWS: u64 = 14;
 
     // ===================== INITIALIZATION =====================
 
@@ -1132,6 +1134,45 @@ module lock_deployer::lock {
             user
         };
         lockup.escrows.contains(&escrow_key)
+    }
+
+    #[view]
+    /// Checks if a creator has an active lockup contract
+    public fun has_lockup(creator: address): bool {
+        exists<LockupRef>(creator)
+    }
+
+    // ===================== CLEANUP FUNCTIONS =====================
+
+    /// Deletes an empty lockup contract and returns storage deposit
+    /// Only creator can call, and all escrows must be cleared first
+    public entry fun delete_lockup(
+        caller: &signer,
+    ) acquires LockupRef, Lockup {
+        let caller_address = signer::address_of(caller);
+
+        // Get and remove LockupRef
+        assert!(exists<LockupRef>(caller_address), E_LOCKUP_NOT_FOUND);
+        let LockupRef { lockup_address } = move_from<LockupRef>(caller_address);
+
+        // Get and validate Lockup
+        let Lockup::ST {
+            creator,
+            extend_ref: _,
+            delete_ref,
+            escrows,
+            paused: _
+        } = move_from<Lockup>(lockup_address);
+
+        // Verify caller is creator
+        assert!(creator == caller_address, E_NOT_ORIGINAL_OR_LOCKUP_OWNER);
+
+        // Verify no escrows remain
+        assert!(big_ordered_map::is_empty(&escrows), E_LOCKUP_HAS_ESCROWS);
+
+        // Cleanup
+        big_ordered_map::destroy_empty(escrows);
+        object::delete(delete_ref);
     }
 
     // ===================== TEST HELPERS =====================
