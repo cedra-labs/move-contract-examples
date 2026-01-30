@@ -1,0 +1,9 @@
+[package]
+name = "SnippetTests"
+version = "1.0.0"
+
+[addresses]
+examples = "0x100"
+
+[dependencies]
+CedraFramework = { git = "https://github.com/cedra-labs/cedra-framework.git", subdir = "cedra-framework", rev = "main" }
